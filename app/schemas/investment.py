@@ -1,15 +1,13 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
-class Investment(BaseModel):
+class InvestmentBase(BaseModel):
+    name: str
+    value_invested: float
+    dividends: float = 0.0
+
+class InvestmentCreate(InvestmentBase):
+    pass
+
+class Investment(InvestmentBase):
+    model_config = ConfigDict(from_attributes=True)
     id: int
-    name: str
-    value_invested: float
-    dividends: float
-
-    class Config:
-        from_atrributes = True
-
-class InvestmentCreate(Investment):
-    name: str
-    value_invested: float
-    dividends: float

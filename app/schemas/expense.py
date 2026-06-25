@@ -1,15 +1,13 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
-class Expense(BaseModel):
+class ExpenseBase(BaseModel):
+    name: str
+    expense_value: float
+    installment: int = 1
+
+class ExpenseCreate(ExpenseBase):
+    pass
+
+class Expense(ExpenseBase):
+    model_config = ConfigDict(from_attributes=True)
     id: int
-    name: str
-    expense_value: float
-    installment: int
-
-    class Config:
-        from_atrributes = True
-
-class ExpenseCreate(Expense):
-    name: str
-    expense_value: float
-    installment: int

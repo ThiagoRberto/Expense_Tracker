@@ -1,27 +1,26 @@
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from schemas.bill import Bill, BillCreate
 from schemas.expense import Expense, ExpenseCreate
 from schemas.income import Income, IncomeCreate
 from schemas.investment import Investment, InvestmentCreate
 
-class User(BaseModel):
+class UserBase(BaseModel):
+    name: str
+    password: str
+    budget_ceiling: Optional[int] = None
+
+class UserCreate(UserBase):
+    bills: List[BillCreate] = []
+    expenses: List[ExpenseCreate] = []
+    incomes: List[IncomeCreate] = []
+    investments: List[InvestmentCreate] = []
+
+class User(UserBase):
+    model_config = ConfigDict(from_attributes=True)
     id: int
-    name: str
-    password: str
-    bills: Optional[Bill] = None
-    expenses: Optional[Expense] = None
-    incomes: Optional[Income] = None
-    investments: Optional[Investment] = None
-
-    class Config:
-        from_atrributes = True
-
-class UserCreate(User):
-    name: str
-    password: str
-    bills: BillCreate
-    expenses: ExpenseCreate
-    incomes: IncomeCreate
-    investments: InvestmentCreate
+    bills: List[Bill] = []
+    expenses: List[Expense] = []
+    incomes: List[Income] = []
+    investments: List[Investment] = []

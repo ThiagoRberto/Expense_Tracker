@@ -1,13 +1,12 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
-class Income(BaseModel):
+class IncomeBase(BaseModel):
+    name: str
+    income_value: float
+
+class IncomeCreate(IncomeBase):
+    pass
+
+class Income(IncomeBase):
+    model_config = ConfigDict(from_attributes=True)
     id: int
-    name: str
-    income_value: float
-
-    class Config:
-        from_atrributes = True
-
-class IncomeCreate(Income):
-    name: str
-    income_value: float

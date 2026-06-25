@@ -1,13 +1,12 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
-class Bill(BaseModel):
+class BillBase(BaseModel):
+    name: str
+    bill_value: float
+
+class BillCreate(BillBase):
+    pass
+
+class Bill(BillBase):
+    model_config = ConfigDict(from_attributes=True)
     id: int
-    name: str
-    bill_value: float
-
-    class Config:
-        from_atrributes = True
-
-class BillCreate(Bill):
-    name: str
-    bill_value: float
