@@ -6,8 +6,10 @@ import models
 from schemas.user import User, UserCreate
 from schemas.summary import FinancialSummary
 from schemas.category_alert import CategoryAlertsResponse, CategoryAlertItem
+from schemas.installment import InstallmentsResponse, ExpenseProjection, InstallmentEntrySchema
 from services.financial_service import (
     summarize_finances, calculate_category_totals, check_all_category_alerts,
+    project_installments,
     IncomeData, ExpenseData, BillData, InvestmentData, CategoryBudgetData,
 )
 from database.database import get_db
@@ -95,3 +97,33 @@ def get_category_alerts(user_id: int, db: Session = Depends(get_db)):
         )
         for cb in category_budgets
     ])
+
+
+@router.get("/{user_id}/installments", response_model=InstallmentsResponse)
+def get_installments(user_id: int, db: Session = Depends(get_db)):
+    user = _load_user(user_id, db)
+    projections = []
+    for expense in user.expenses:
+        entries = project_installments(
+            expense.expense_value,
+            expense.installment,
+            expense.start_month,
+            expense.start_year,
+        )
+        projections.append(ExpenseProjection(
+            expense_id=expense.id,
+            expense_name=expense.name,
+            category=expense.category,
+            total_value=expense.expense_value,
+            installments=expense.installment,
+            entries=[
+                InstallmentEntrySchema(
+                    installment_number=e.installment_number,
+                    month=e.month,
+                    year=e.year,
+                    amount=e.amount,
+                )
+                for e in entries
+            ],
+        ))
+    return InstallmentsResponse(projections=projections)
