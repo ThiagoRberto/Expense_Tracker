@@ -30,11 +30,30 @@ class InvestmentData:
     dividends: float = 0.0
 
 @dataclass
+class InstallmentPurchase:
+    """
+    Uma compra parcelada a ser agendada no tempo: valor total, número de
+    parcelas e a data (mês/ano) da primeira parcela. É a entrada das projeções
+    de fatura — todos os campos são obrigatórios, pois a data de uma compra
+    parcelada é dado real, nunca ausente.
+    """
+    expense_value: float
+    installments: int
+    start_month: int
+    start_year: int
+
+@dataclass
 class InstallmentEntry:
     installment_number: int
     month: int
     year: int
     amount: float
+
+@dataclass
+class MonthlyInvoice:
+    month: int
+    year: int
+    total: float
 
 BudgetStatus = Literal["OK", "WARNING", "EXCEEDED"]
 
@@ -152,6 +171,54 @@ def project_installments(
             year += 1
 
     return result
+
+
+def project_monthly_invoices(
+    purchases: list[InstallmentPurchase],
+    reference_month: int,
+    reference_year: int,
+    months_ahead: int,
+) -> list[MonthlyInvoice]:
+    """
+    Consolida as parcelas de todas as compras parceladas em faturas mensais.
+
+    Soma o valor de cada parcela que cai dentro da janela de `months_ahead`
+    meses a partir de (reference_month, reference_year) inclusive. Todo mês da
+    janela aparece no resultado em ordem cronológica, mesmo sem parcelas
+    (total 0.0). Parcelas fora da janela (passadas ou além do horizonte) são
+    ignoradas.
+
+    Compõe `project_installments` para cada compra, herdando sua validação
+    estrita (installments >= 1) e o suporte a virada de ano.
+    """
+    if not (1 <= reference_month <= 12):
+        raise ValueError("reference_month must be between 1 and 12")
+    if reference_year < 1:
+        raise ValueError("reference_year must be a positive integer")
+    if months_ahead < 1:
+        raise ValueError("months_ahead must be at least 1")
+
+    # índice absoluto de mês (ano*12 + mês-1) lineariza a virada de ano,
+    # transformando a janela e o agrupamento em simples comparações inteiras.
+    start_idx = reference_year * 12 + (reference_month - 1)
+    window = range(start_idx, start_idx + months_ahead)
+    totals: dict[int, float] = {idx: 0.0 for idx in window}
+
+    for purchase in purchases:
+        for entry in project_installments(
+            purchase.expense_value,
+            purchase.installments,
+            purchase.start_month,
+            purchase.start_year,
+        ):
+            idx = entry.year * 12 + (entry.month - 1)
+            if idx in totals:
+                totals[idx] += entry.amount
+
+    return [
+        MonthlyInvoice(month=idx % 12 + 1, year=idx // 12, total=round(totals[idx], 2))
+        for idx in window
+    ]
 
 
 def calculate_net_worth(

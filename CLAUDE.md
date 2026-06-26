@@ -30,28 +30,6 @@ Website de gerenciamento financeiro pessoal com as seguintes funcionalidades:
 | `dividends` | **Dividendos** — rendimentos gerados pelos investimentos |
 | `summary` | **Resumo financeiro** — consolidação de todos os indicadores do usuário |
 
-### Termos técnicos de software
-
-| Termo | Significado |
-|-------|-------------|
-| `ORM` | **Mapeamento objeto-relacional** (Object-Relational Mapping) — camada que converte objetos Python em linhas de banco de dados automaticamente. Aqui usamos SQLAlchemy. |
-| `schema` | **Esquema de validação** — estrutura Pydantic que define e valida os dados recebidos e enviados pela API |
-| `endpoint` | **Rota da API** — URL que o cliente acessa para interagir com o sistema (ex: `GET /users/1/summary`) |
-| `router` | **Módulo de rotas** — arquivo que agrupa endpoints relacionados (ex: `routers/expenses.py` agrupa tudo de despesas) |
-| `dataclass` | **Classe de dados** — estrutura Python simples para agrupar campos relacionados sem lógica extra |
-| `IO-Free` | **Sem entrada/saída** — funções que não acessam banco de dados, rede ou arquivos; recebem e retornam apenas dados puros, o que as torna fáceis de testar |
-| `CRUD` | **Criar, Ler, Atualizar, Deletar** (Create, Read, Update, Delete) — operações básicas de banco de dados |
-| `mock` | **Objeto simulado** — substituto falso criado nos testes para isolar dependências externas (banco, API, etc.) |
-| `fixture` | **Dado de suporte** — estado ou objeto preparado antes de um teste rodar (ex: um usuário já criado no banco) |
-| `MC/DC` | **Cobertura de condição/decisão modificada** (Modified Condition/Decision Coverage) — técnica de teste que exige verificar cada condição lógica de forma independente |
-| `boundary analysis` | **Análise de fronteiras** — técnica que testa os valores exatos nos limites de uma condição (ex: 80% e 100% do teto) |
-| `PK` | **Chave primária** (Primary Key) — identificador único de um registro no banco (campo `id`) |
-| `FK` | **Chave estrangeira** (Foreign Key) — campo que referencia o `id` de outra tabela (ex: `user_id` em `Expense`) |
-| `nullable` | **Aceita nulo** — campo que pode ficar vazio/sem valor |
-| `cascade` | **Cascata** — operações que se propagam automaticamente para registros filhos (ex: deletar usuário apaga suas despesas) |
-| `in-memory` | **Em memória** — banco de dados que vive apenas na RAM durante os testes, sem criar arquivo em disco |
-| `StaticPool` | **Pool estático** — configuração do SQLAlchemy que força todas as conexões a compartilhar o mesmo banco SQLite em memória (necessário para os testes de integração funcionarem) |
-
 ---
 
 ## Stack
@@ -67,7 +45,7 @@ Website de gerenciamento financeiro pessoal com as seguintes funcionalidades:
 
 ### Limitação conhecida — valores monetários em `Float`
 
-Todos os campos monetários (`expense_value`, `bill_value`, `income_value`, `ceiling`, `budget_ceiling`, etc.) usam `float`. Ponto flutuante binário não representa frações decimais com exatidão (ex.: `0.1 + 0.2 != 0.3`), por isso a camada de serviço arredonda os resultados em 2 casas (`round(..., 2)`). Para um sistema financeiro de produção, o tipo correto seria `Decimal` (ou centavos em `Integer`), que elimina o erro de arredondamento. Optou-se por `float` neste projeto acadêmico pela simplicidade; a estratégia de arredondamento mantém os resultados consistentes para os casos testados.
+Todos os campos monetários (`expense_value` (valor da despesa), `bill_value` (valor da conta fixa), `income_value` (valor da receita), `ceiling` (teto), `budget_ceiling` (teto orçamentário), etc.) usam `float`. Ponto flutuante binário não representa frações decimais com exatidão (ex.: `0.1 + 0.2 != 0.3`), por isso a camada de serviço arredonda os resultados em 2 casas (`round(..., 2)`). Para um sistema financeiro de produção, o tipo correto seria `Decimal` (ou centavos em `Integer`), que elimina o erro de arredondamento. Optou-se por `float` neste projeto acadêmico pela simplicidade; a estratégia de arredondamento mantém os resultados consistentes para os casos testados.
 
 ---
 
@@ -98,10 +76,11 @@ app/
 │   ├── summary.py                 # Resposta do resumo financeiro
 │   ├── category_budget.py        # Teto por categoria
 │   ├── category_alert.py         # Resposta dos alertas por categoria
-│   └── installment.py            # Resposta da projeção de parcelas
+│   ├── installment.py            # Resposta da projeção de parcelas
+│   └── monthly_invoice.py        # Resposta das faturas mensais consolidadas
 ├── routers/                       # Um arquivo por grupo de rotas (endpoints)
 │   ├── users.py                   # CRUD de usuário
-│   ├── analytics.py               # Indicadores derivados: summary, category-alerts, installments
+│   ├── analytics.py               # Indicadores derivados: summary, category-alerts, installments, monthly-invoices
 │   ├── expenses.py
 │   ├── bills.py
 │   ├── incomes.py
@@ -115,6 +94,7 @@ app/
     │   ├── test_calculate_balance.py       (13 testes)
     │   ├── test_budget_alert.py            (16 testes — MC/DC completo)
     │   ├── test_project_installments.py    (19 testes)
+    │   ├── test_monthly_invoices.py        (14 testes)
     │   ├── test_net_worth.py               (9 testes)
     │   ├── test_summarize_finances.py      (6 testes)
     │   └── test_category_alerts.py         (19 testes)
@@ -124,10 +104,11 @@ app/
         ├── test_entity_endpoints.py        (25 testes)
         ├── test_summary_endpoint.py        (8 testes)
         ├── test_category_endpoints.py      (14 testes)
-        └── test_installments_endpoint.py   (9 testes)
+        ├── test_installments_endpoint.py   (9 testes)
+        └── test_monthly_invoices_endpoint.py (7 testes)
 ```
 
-**Total: 157 testes, 100% passando.**
+**Total: 178 testes, 100% passando.**
 
 ---
 
@@ -208,7 +189,8 @@ Schemas de resposta especiais:
 ### Projeção de parcelas
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| `GET` | `/users/{user_id}/installments` | Projeta todas as faturas futuras de todas as despesas parceladas do usuário |
+| `GET` | `/users/{user_id}/installments` | Projeta todas as parcelas futuras de cada despesa parcelada do usuário (detalhado por despesa) |
+| `GET` | `/users/{user_id}/monthly-invoices?months_ahead=N` | Consolida as parcelas de **todas** as despesas por mês — a fatura total devida em cada um dos próximos `N` meses (default 6) |
 
 ### Entidades individuais
 | Método | Rota |
@@ -231,48 +213,56 @@ Todas as funções são **puras (IO-Free)**: sem acesso a banco, sem estado glob
 | Dataclass | Campos |
 |-----------|--------|
 | `IncomeData` | `income_value: float` (valor da receita) |
-| `ExpenseData` | `expense_value: float`, `installment: int = 1` (parcelas), `category: str = "geral"` |
+| `ExpenseData` | `expense_value: float` (valor da despesa), `installment: int = 1` (parcelas), `category: str = "geral"` |
 | `BillData` | `bill_value: float` (valor da conta fixa) |
 | `InvestmentData` | `value_invested: float`, `dividends: float = 0.0` (dividendos) |
-| `CategoryBudgetData` | `category: str`, `ceiling: float` (teto) |
+| `CategoryBudgetData` | `category: str`, `ceiling: float` (teto orçamentário) |
+| `InstallmentPurchase` | `expense_value: float` (valor da despesa), `installments: int` (parcelas), `start_month: int`, `start_year: int` (compra parcelada a agendar — entrada das projeções; data **obrigatória**) |
 | `InstallmentEntry` | `installment_number: int`, `month: int`, `year: int`, `amount: float` |
+| `MonthlyInvoice` | `month: int`, `year: int`, `total: float` (fatura consolidada de um mês) |
 
 `BudgetStatus = Literal["OK", "WARNING", "EXCEEDED"]`
 
 ### Funções
 
 #### `calculate_balance(incomes, expenses, bills) -> float`
+Calcula o saldo (`balance`) mensal a partir das receitas (`incomes`), despesas (`expenses`) e contas fixas (`bills`).
 ```
-saldo = Σ receitas − Σ (expense_value / max(installment, 1)) − Σ contas_fixas
+saldo = Σ receitas − Σ (valor_da_despesa / max(parcelas, 1)) − Σ contas_fixas
 ```
-Cada despesa parcelada contribui apenas com sua fração mensal. Levanta `ValueError` para valores negativos.
+Cada despesa (`expense`) parcelada contribui apenas com sua fração mensal (uma parcela / `installment`). Levanta `ValueError` para valores negativos.
 
 #### `check_budget_alert(category_total, budget_ceiling) -> BudgetStatus`
+Compara o gasto de uma categoria com o teto orçamentário (`budget_ceiling`).
 ```
-ratio = gasto_na_categoria / teto_orçamentário
+ratio = gasto_na_categoria / teto_orçamentário (budget_ceiling)
 ratio >= 1.0  →  "EXCEEDED"  (teto ultrapassado)
 ratio >  0.8  →  "WARNING"   (acima de 80% do teto)
 caso contrário →  "OK"
 ```
-Base das coberturas MC/DC (cobertura de condição/decisão modificada) nos testes. Levanta `ValueError` se `budget_ceiling <= 0` ou `category_total < 0`.
+Base das coberturas MC/DC (cobertura de condição/decisão modificada) nos testes. Levanta `ValueError` se `budget_ceiling` (teto orçamentário) `<= 0` ou `category_total` (gasto da categoria) `< 0`.
 
 #### `project_installments(expense_value, installments, start_month, start_year) -> list[InstallmentEntry]`
-Distribui o valor total em `installments` parcelas mensais iguais (arredondadas em 2 casas). A última parcela absorve o erro de arredondamento, garantindo que `Σ parcelas == expense_value`. Suporta virada de ano (dezembro → janeiro do ano seguinte).
+Distribui o valor da despesa (`expense_value`) em `installments` (parcelas) mensais iguais (arredondadas em 2 casas). A última parcela (`installment`) absorve o erro de arredondamento, garantindo que `Σ parcelas == expense_value` (valor da despesa). Suporta virada de ano (dezembro → janeiro do ano seguinte).
+
+#### `project_monthly_invoices(purchases, reference_month, reference_year, months_ahead) -> list[MonthlyInvoice]`
+Recebe uma lista de `InstallmentPurchase` (compras parceladas) e consolida as parcelas (`installments`) de **todas** elas por mês, somando o que cai em cada um dos `months_ahead` meses a partir de `(reference_month, reference_year)` inclusive. Todo mês da janela aparece (total `0.0` se não houver parcela). **Compõe** `project_installments` (reuso da lógica testada) e herda sua política estrita. O "hoje" é injetado pelo router — a função permanece pura e determinística. Levanta `ValueError` para `months_ahead < 1`, `reference_month` fora de 1–12 ou `reference_year < 1`.
 
 #### `calculate_net_worth(investments, balance) -> float`
+Calcula o patrimônio líquido (`net_worth`) a partir dos investimentos (`investments`) e do saldo (`balance`).
 ```
 patrimônio líquido = saldo + Σ (capital_investido + dividendos)
 ```
-Saldo negativo (déficit) reduz o patrimônio.
+Saldo (`balance`) negativo (déficit) reduz o patrimônio líquido.
 
 #### `summarize_finances(incomes, expenses, bills, investments, budget_ceiling) -> dict`
-Compõe `calculate_balance`, `calculate_net_worth` e `check_budget_alert` em um único dicionário. `budget_status` só aparece se `budget_ceiling` (teto orçamentário) for informado.
+Compõe `calculate_balance` (saldo), `calculate_net_worth` (patrimônio líquido) e `check_budget_alert` (alerta de teto) em um único dicionário, a partir das receitas (`incomes`), despesas (`expenses`), contas fixas (`bills`) e investimentos (`investments`). O `budget_status` (status do teto orçamentário) só aparece se `budget_ceiling` (teto orçamentário) for informado.
 
 #### `calculate_category_totals(expenses) -> dict[str, float]`
-Agrupa o custo mensal por categoria. Cada despesa contribui com `expense_value / max(installment, 1)`.
+Agrupa o custo mensal por categoria. Cada despesa (`expense`) contribui com `valor_da_despesa / max(parcelas, 1)` (`expense_value / max(installment, 1)`).
 
 #### `check_all_category_alerts(category_totals, category_budgets) -> dict[str, BudgetStatus]`
-Aplica `check_budget_alert` para cada categoria que possui teto definido. Categorias sem despesas são tratadas como gasto zero. Levanta `ValueError` se qualquer `ceiling` (teto) for `<= 0`.
+Aplica `check_budget_alert` para cada categoria que possui teto orçamentário (`ceiling`) definido. Categorias sem despesas (`expenses`) são tratadas como gasto zero. Levanta `ValueError` se qualquer `ceiling` (teto orçamentário) for `<= 0`.
 
 ---
 
@@ -285,6 +275,7 @@ Aplica `check_budget_alert` para cada categoria que possui teto definido. Catego
 | `test_calculate_balance` | 13 | Combinações de entradas, boundary (análise de fronteiras) no saldo zero e déficit |
 | `test_budget_alert` | 16 | **MC/DC completo** para `ratio >= 1.0` e `ratio > 0.8`, boundary analysis nos limites exatos de 80% e 100% |
 | `test_project_installments` | 19 | Virada de ano, 13 parcelas cruzando dois anos, correção de arredondamento, todos os inputs inválidos |
+| `test_monthly_invoices` | 14 | Agregação de múltiplas despesas no mesmo mês, parcelas fora da janela (passadas/futuras), virada de ano, boundary de `months_ahead`, mês sem parcela, validações |
 | `test_net_worth` | 9 | Saldo negativo, múltiplos investimentos, valores grandes |
 | `test_summarize_finances` | 6 | Todos os status de teto, teto ausente |
 | `test_category_alerts` | 19 | Categorias sem despesas, múltiplos status simultâneos, boundary 80% e 100%, teto inválido |
@@ -300,6 +291,7 @@ Configurados em `tests/integration/conftest.py` com `StaticPool` (pool estático
 | `test_summary_endpoint` | 8 | Resumo financeiro via HTTP, com e sem teto orçamentário |
 | `test_category_endpoints` | 14 | CRUD de tetos por categoria, alertas OK/WARNING/EXCEEDED, parcelas contribuindo fração mensal |
 | `test_installments_endpoint` | 9 | Projeção de parcelas, virada de ano, correção de arredondamento, múltiplas despesas, 404 |
+| `test_monthly_invoices_endpoint` | 7 | Janela default e customizada, agregação na janela, soma = valor total, `months_ahead=0` → 422, 404 |
 
 ---
 

@@ -32,11 +32,15 @@ O arquivo define dataclasses (classes de dados) próprias para desacoplar a lóg
 | Dataclass | Campos |
 |-----------|--------|
 | `IncomeData` | `income_value: float` (valor da receita) |
-| `ExpenseData` | `expense_value: float`, `installment: int = 1` (parcelas), `category: str = "geral"` |
+| `ExpenseData` | `expense_value: float` (valor da despesa), `installment: int = 1` (parcelas), `category: str = "geral"` |
 | `BillData` | `bill_value: float` (valor da conta fixa) |
 | `InvestmentData` | `value_invested: float`, `dividends: float = 0.0` (dividendos) |
 | `CategoryBudgetData` | `category: str`, `ceiling: float` (teto orçamentário) |
+| `InstallmentPurchase` | `expense_value: float` (valor da despesa), `installments: int` (parcelas), `start_month: int`, `start_year: int` |
 | `InstallmentEntry` | `installment_number: int`, `month: int`, `year: int`, `amount: float` |
+| `MonthlyInvoice` | `month: int`, `year: int`, `total: float` (fatura consolidada de um mês) |
+
+> **Por que `ExpenseData` e `InstallmentPurchase` são tipos separados:** cada função recebe exatamente o que precisa (segregação de interface). `calculate_balance` e `calculate_category_totals` não dependem de data, então usam a `ExpenseData` enxuta. As projeções de fatura precisam da data da primeira parcela, então usam a `InstallmentPurchase`, onde `start_month`/`start_year` são **obrigatórios** — a data de uma compra parcelada é dado real, nunca um default. Evita-se assim um campo de data sem semântica numa `ExpenseData` única. A camada pura **nunca** lê o relógio; quem injeta a data real (do ORM) é o router.
 
 `BudgetStatus = Literal["OK", "WARNING", "EXCEEDED"]` — tipo de retorno de `check_budget_alert` e `check_all_category_alerts`.
 
@@ -46,16 +50,16 @@ O arquivo define dataclasses (classes de dados) próprias para desacoplar a lóg
 
 ### `calculate_balance(incomes, expenses, bills) -> float`
 
-Calcula o saldo mensal disponível do usuário.
+Calcula o saldo (`balance`) mensal disponível do usuário a partir das receitas (`incomes`), despesas (`expenses`) e contas fixas (`bills`).
 
 **Fórmula:**
 ```
 saldo = Σ receitas − Σ (valor_despesa / parcelas) − Σ contas_fixas
 ```
 
-Cada despesa parcelada contribui apenas com sua fração mensal (`expense_value / installment`). Se `installment = 0`, é tratado como `1` via `max(installment, 1)` para evitar divisão por zero.
+Cada despesa (`expense`) parcelada contribui apenas com sua fração mensal (`expense_value` (valor da despesa) `/ installment` (parcela)). Se `installment` (parcela) `= 0`, é tratado como `1` via `max(installment, 1)` para evitar divisão por zero.
 
-Resultado negativo indica déficit mensal.
+Resultado negativo indica déficit mensal (saldo negativo).
 
 **Validações:** levanta `ValueError` se qualquer `income_value` (receita), `expense_value` (despesa) ou `bill_value` (conta fixa) for negativo.
 
@@ -63,7 +67,7 @@ Resultado negativo indica déficit mensal.
 
 ### `check_budget_alert(category_total, budget_ceiling) -> BudgetStatus`
 
-Compara o total gasto em uma categoria com o teto orçamentário (limite máximo) definido pelo usuário.
+Compara o total gasto em uma categoria com o teto orçamentário (`budget_ceiling` — limite máximo) definido pelo usuário.
 
 **Lógica (duas condições independentes — base do MC/DC):**
 
@@ -90,8 +94,8 @@ caso contrário →  "OK"
 Projeta as faturas futuras de uma compra parcelada, com suporte a virada de ano.
 
 **Comportamento:**
-- Divide `expense_value` em `installments` parcelas (pagamentos mensais) iguais, arredondadas em 2 casas decimais
-- A **última parcela absorve o erro de arredondamento**, garantindo que a soma seja exatamente igual ao valor original
+- Divide `expense_value` (valor da despesa) em `installments` (parcelas / pagamentos mensais) iguais, arredondadas em 2 casas decimais
+- A **última parcela (`installment`) absorve o erro de arredondamento**, garantindo que a soma seja exatamente igual ao valor original
 - Ao passar de dezembro, `month` volta para 1 e `year` incrementa (virada de ano)
 
 **Exemplo:** `project_installments(10.0, 3, 11, 2025)` retorna:
@@ -101,20 +105,45 @@ Projeta as faturas futuras de uma compra parcelada, com suporte a virada de ano.
  InstallmentEntry(3,  1, 2026, 3.34)]   ← parcela 3: janeiro (correção de arredondamento)
 ```
 
-**Validações:** `expense_value >= 0`, `installments >= 1`, `1 <= start_month <= 12`, `start_year >= 1`.
+**Validações:** `expense_value` (valor da despesa) `>= 0`, `installments` (parcelas) `>= 1`, `1 <= start_month <= 12`, `start_year >= 1`.
+
+---
+
+### `project_monthly_invoices(purchases, reference_month, reference_year, months_ahead) -> list[MonthlyInvoice]`
+
+Recebe uma lista de `InstallmentPurchase` (compras parceladas) e consolida as parcelas (`installments`) de **todas** elas em faturas mensais — responde "quanto vou dever em cada um dos próximos meses".
+
+**Comportamento:**
+- Soma o valor de cada parcela que cai na janela de `months_ahead` meses a partir de `(reference_month, reference_year)` **inclusive**
+- Todo mês da janela aparece no resultado, em ordem cronológica, mesmo sem parcelas (`total = 0.0`)
+- Parcelas fora da janela (já vencidas ou além do horizonte) são ignoradas
+- **Compõe** `project_installments` por compra, reaproveitando a lógica testada (virada de ano, arredondamento) e herdando sua política estrita (`installments >= 1`)
+- Internamente usa um índice absoluto de mês (`ano*12 + mês-1`) para linearizar a virada de ano
+
+**Pureza:** a função não lê o relógio. O mês/ano de referência ("hoje") é injetado pela camada de router via `datetime.now()`, mantendo o serviço determinístico e testável.
+
+**Exemplo:** janela de 3 meses a partir de nov/2025, com uma compra de R$ 300 em 3x começando em nov/2025:
+```python
+project_monthly_invoices([InstallmentPurchase(300, 3, 11, 2025)], 11, 2025, 3)
+# → [MonthlyInvoice(11, 2025, 100.0),
+#    MonthlyInvoice(12, 2025, 100.0),
+#    MonthlyInvoice(1, 2026, 100.0)]
+```
+
+**Validações:** `months_ahead >= 1`, `1 <= reference_month <= 12`, `reference_year >= 1`.
 
 ---
 
 ### `calculate_net_worth(investments, balance) -> float`
 
-Calcula o patrimônio líquido total do usuário.
+Calcula o patrimônio líquido (`net_worth`) total do usuário a partir dos investimentos (`investments`) e do saldo (`balance`).
 
 **Fórmula:**
 ```
 patrimônio líquido = saldo + Σ (capital_investido + dividendos)
 ```
 
-Saldo negativo (déficit) reduz o patrimônio. Lista vazia de investimentos retorna apenas o saldo.
+Saldo (`balance`) negativo (déficit) reduz o patrimônio líquido. Lista vazia de investimentos retorna apenas o saldo.
 
 ---
 
@@ -137,10 +166,10 @@ Função de composição que agrega todos os indicadores financeiros em um únic
 
 ### `calculate_category_totals(expenses) -> dict[str, float]`
 
-Agrupa o custo mensal de cada despesa por categoria.
+Agrupa o custo mensal de cada despesa (`expense`) por categoria.
 
 **Comportamento:**
-- Cada despesa contribui com `expense_value / max(installment, 1)` (sua fração mensal, ou seja, o valor de uma parcela)
+- Cada despesa (`expense`) contribui com `expense_value / max(installment, 1)` (valor da despesa ÷ parcelas — sua fração mensal, ou seja, o valor de uma parcela)
 - Despesas da mesma categoria são somadas
 - Despesas sem categoria explícita usam `"geral"` (padrão de `ExpenseData`)
 
