@@ -8,7 +8,7 @@ from schemas.investment import Investment, InvestmentCreate
 
 class UserBase(BaseModel):
     name: str
-    budget_ceiling: Optional[int] = Field(default=None, gt=0)
+    budget_ceiling: Optional[float] = Field(default=None, gt=0)
 
 class UserCreate(UserBase):
     password: str

@@ -160,10 +160,10 @@ def calculate_net_worth(
 ) -> float:
     """
     Patrimônio líquido = saldo disponível + capital investido + dividendos acumulados.
+
+    Um saldo negativo (déficit) entra naturalmente como parcela negativa da soma,
+    reduzindo o patrimônio.
     """
-    if balance < 0:
-        # saldo negativo reduz o patrimônio
-        pass
     total_invested = sum(i.value_invested + i.dividends for i in investments)
     return round(balance + total_invested, 2)
 

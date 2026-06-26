@@ -65,6 +65,10 @@ Website de gerenciamento financeiro pessoal com as seguintes funcionalidades:
 | Servidor | Uvicorn |
 | Testes | pytest + pytest-cov + httpx |
 
+### Limitação conhecida — valores monetários em `Float`
+
+Todos os campos monetários (`expense_value`, `bill_value`, `income_value`, `ceiling`, `budget_ceiling`, etc.) usam `float`. Ponto flutuante binário não representa frações decimais com exatidão (ex.: `0.1 + 0.2 != 0.3`), por isso a camada de serviço arredonda os resultados em 2 casas (`round(..., 2)`). Para um sistema financeiro de produção, o tipo correto seria `Decimal` (ou centavos em `Integer`), que elimina o erro de arredondamento. Optou-se por `float` neste projeto acadêmico pela simplicidade; a estratégia de arredondamento mantém os resultados consistentes para os casos testados.
+
 ---
 
 ## Estrutura de Arquivos
@@ -134,7 +138,7 @@ app/
 | `id` | Integer PK (chave primária) | |
 | `name` | String | |
 | `password` | String | |
-| `budget_ceiling` | Integer (nullable — aceita nulo) | Teto orçamentário global |
+| `budget_ceiling` | Float (nullable — aceita nulo) | Teto orçamentário global |
 
 Relacionamentos um-para-muitos com: `bills` (contas fixas), `expenses` (despesas), `incomes` (receitas), `investments` (investimentos), `category_budgets` (tetos por categoria). Todos com `cascade="all, delete-orphan"` (deleção em cascata).
 
@@ -184,8 +188,8 @@ Schemas de resposta especiais:
 ### Usuários
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| `POST` | `/users/` | Cria usuário (aceita listas de contas/despesas/receitas/investimentos inline) |
-| `GET` | `/users/` | Lista todos os usuários |
+| `POST` | `/users` | Cria usuário (aceita listas de contas/despesas/receitas/investimentos inline) |
+| `GET` | `/users` | Lista todos os usuários |
 | `GET` | `/users/{user_id}` | Busca usuário por ID (retorna 404 se não encontrado) |
 
 ### Resumo financeiro
