@@ -100,7 +100,8 @@ app/
 │   ├── category_alert.py         # Resposta dos alertas por categoria
 │   └── installment.py            # Resposta da projeção de parcelas
 ├── routers/                       # Um arquivo por grupo de rotas (endpoints)
-│   ├── users.py
+│   ├── users.py                   # CRUD de usuário
+│   ├── analytics.py               # Indicadores derivados: summary, category-alerts, installments
 │   ├── expenses.py
 │   ├── bills.py
 │   ├── incomes.py

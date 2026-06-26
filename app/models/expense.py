@@ -12,5 +12,5 @@ class Expense(Base):
     installment = Column(Integer, nullable=False, default=1)
     start_month = Column(Integer, nullable=False, default=lambda: datetime.now().month)
     start_year = Column(Integer, nullable=False, default=lambda: datetime.now().year)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     user = relationship("User", back_populates="expenses")
