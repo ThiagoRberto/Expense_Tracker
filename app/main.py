@@ -1,6 +1,10 @@
 import models
 
 from schemas.user import User, UserCreate
+from schemas.summary import FinancialSummary
+from services.financial_service import (
+    summarize_finances, IncomeData, ExpenseData, BillData, InvestmentData
+)
 
 from typing import List
 
@@ -57,3 +61,22 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+@app.get('/users/{user_id}/summary', response_model=FinancialSummary)
+def get_user_summary(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).options(
+        joinedload(models.User.bills),
+        joinedload(models.User.expenses),
+        joinedload(models.User.incomes),
+        joinedload(models.User.investments),
+    ).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return summarize_finances(
+        incomes=[IncomeData(i.income_value) for i in user.incomes],
+        expenses=[ExpenseData(e.expense_value, e.installment) for e in user.expenses],
+        bills=[BillData(b.bill_value) for b in user.bills],
+        investments=[InvestmentData(i.value_invested, i.dividends) for i in user.investments],
+        budget_ceiling=user.budget_ceiling,
+    )
