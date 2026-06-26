@@ -4,8 +4,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
 
-from database.database import Base
-from main import app, get_db
+from database.database import Base, get_db
+from main import app
 
 # StaticPool garante que todas as conexões usem o mesmo banco in-memory,
 # evitando que cada nova conexão abra um banco vazio.

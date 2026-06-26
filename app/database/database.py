@@ -1,4 +1,3 @@
-import sqlite3
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -11,6 +10,9 @@ SessionLocal = sessionmaker(bind=engine)
 
 Base = declarative_base()
 
-def connect():
-    conn = sqlite3.connect('financial.db')
-    return conn
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
