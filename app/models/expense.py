@@ -6,6 +6,7 @@ class Expense(Base):
     __tablename__ = 'expenses'
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(256), nullable=False)
+    category = Column(String(100), nullable=False, default="geral")
     expense_value = Column(Float, nullable=False)
     installment = Column(Integer, nullable=False, default=1)
     user_id = Column(Integer, ForeignKey("users.id"))

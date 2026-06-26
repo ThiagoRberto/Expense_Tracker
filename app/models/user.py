@@ -13,3 +13,4 @@ class User(Base):
     bills = relationship("Bill", back_populates="user", uselist=True, cascade="all, delete-orphan")
     investments = relationship("Investment", back_populates="user", uselist=True, cascade="all, delete-orphan")
     expenses = relationship("Expense", back_populates="user", uselist=True, cascade="all, delete-orphan")
+    category_budgets = relationship("CategoryBudget", back_populates="user", uselist=True, cascade="all, delete-orphan")

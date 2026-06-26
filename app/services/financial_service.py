@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Literal
 
 # ---------------------------------------------------------------------------
@@ -13,6 +13,12 @@ class IncomeData:
 class ExpenseData:
     expense_value: float
     installment: int = 1
+    category: str = "geral"
+
+@dataclass
+class CategoryBudgetData:
+    category: str
+    ceiling: float
 
 @dataclass
 class BillData:
@@ -168,4 +174,33 @@ def summarize_finances(
     if budget_ceiling is not None:
         result["budget_status"] = check_budget_alert(total_spending, budget_ceiling)
 
+    return result
+
+
+def calculate_category_totals(expenses: list[ExpenseData]) -> dict[str, float]:
+    """
+    Agrupa o custo mensal de cada despesa por categoria.
+    Despesas parceladas contribuem apenas com sua fração mensal.
+    """
+    totals: dict[str, float] = {}
+    for e in expenses:
+        monthly = round(e.expense_value / max(e.installment, 1), 2)
+        totals[e.category] = round(totals.get(e.category, 0.0) + monthly, 2)
+    return totals
+
+
+def check_all_category_alerts(
+    category_totals: dict[str, float],
+    category_budgets: list[CategoryBudgetData],
+) -> dict[str, BudgetStatus]:
+    """
+    Retorna o status de alerta para cada categoria que possui teto definido.
+    Categorias sem despesas são tratadas como gasto zero.
+    """
+    result: dict[str, BudgetStatus] = {}
+    for cb in category_budgets:
+        if cb.ceiling <= 0:
+            raise ValueError(f"Ceiling for category '{cb.category}' must be greater than zero")
+        total = category_totals.get(cb.category, 0.0)
+        result[cb.category] = check_budget_alert(total, cb.ceiling)
     return result

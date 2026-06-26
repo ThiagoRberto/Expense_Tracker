@@ -1,0 +1,26 @@
+from typing import List
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+import models
+from schemas.category_budget import CategoryBudget, CategoryBudgetCreate
+from database.database import get_db
+from dependencies import get_user_or_404
+
+router = APIRouter(prefix="/users/{user_id}/category-budgets", tags=["category_budgets"])
+
+
+@router.post("", response_model=CategoryBudget)
+def create_category_budget(user_id: int, budget: CategoryBudgetCreate, db: Session = Depends(get_db)):
+    get_user_or_404(user_id, db)
+    db_budget = models.CategoryBudget(**budget.model_dump(), user_id=user_id)
+    db.add(db_budget)
+    db.commit()
+    db.refresh(db_budget)
+    return db_budget
+
+
+@router.get("", response_model=List[CategoryBudget])
+def list_category_budgets(user_id: int, db: Session = Depends(get_db)):
+    get_user_or_404(user_id, db)
+    return db.query(models.CategoryBudget).filter(models.CategoryBudget.user_id == user_id).all()

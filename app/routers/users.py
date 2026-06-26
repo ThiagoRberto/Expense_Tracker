@@ -5,8 +5,10 @@ from sqlalchemy.orm import Session, joinedload
 import models
 from schemas.user import User, UserCreate
 from schemas.summary import FinancialSummary
+from schemas.category_alert import CategoryAlertsResponse, CategoryAlertItem
 from services.financial_service import (
-    summarize_finances, IncomeData, ExpenseData, BillData, InvestmentData
+    summarize_finances, calculate_category_totals, check_all_category_alerts,
+    IncomeData, ExpenseData, BillData, InvestmentData, CategoryBudgetData,
 )
 from database.database import get_db
 
@@ -62,8 +64,34 @@ def get_user_summary(user_id: int, db: Session = Depends(get_db)):
     user = _load_user(user_id, db)
     return summarize_finances(
         incomes=[IncomeData(i.income_value) for i in user.incomes],
-        expenses=[ExpenseData(e.expense_value, e.installment) for e in user.expenses],
+        expenses=[ExpenseData(e.expense_value, e.installment, e.category) for e in user.expenses],
         bills=[BillData(b.bill_value) for b in user.bills],
         investments=[InvestmentData(i.value_invested, i.dividends) for i in user.investments],
         budget_ceiling=user.budget_ceiling,
     )
+
+
+@router.get("/{user_id}/category-alerts", response_model=CategoryAlertsResponse)
+def get_category_alerts(user_id: int, db: Session = Depends(get_db)):
+    user = _load_user(user_id, db)
+    category_budgets = (
+        db.query(models.CategoryBudget)
+        .filter(models.CategoryBudget.user_id == user_id)
+        .all()
+    )
+
+    expenses = [ExpenseData(e.expense_value, e.installment, e.category) for e in user.expenses]
+    cb_data = [CategoryBudgetData(cb.category, cb.ceiling) for cb in category_budgets]
+
+    totals = calculate_category_totals(expenses)
+    alerts = check_all_category_alerts(totals, cb_data)
+
+    return CategoryAlertsResponse(alerts=[
+        CategoryAlertItem(
+            category=cb.category,
+            total=totals.get(cb.category, 0.0),
+            ceiling=cb.ceiling,
+            status=alerts[cb.category],
+        )
+        for cb in category_budgets
+    ])
