@@ -213,11 +213,10 @@ Todas as funções são **puras (IO-Free)**: sem acesso a banco, sem estado glob
 | Dataclass | Campos |
 |-----------|--------|
 | `IncomeData` | `income_value: float` (valor da receita) |
-| `ExpenseData` | `expense_value: float` (valor da despesa), `installment: int = 1` (parcelas), `category: str = "geral"` |
+| `ExpenseData` | `expense_value: float` (valor da despesa), `installment: int` (parcelas), `start_month: int`, `start_year: int` (data da 1ª parcela — **obrigatória**), `category: str = "geral"` |
 | `BillData` | `bill_value: float` (valor da conta fixa) |
 | `InvestmentData` | `value_invested: float`, `dividends: float = 0.0` (dividendos) |
 | `CategoryBudgetData` | `category: str`, `ceiling: float` (teto orçamentário) |
-| `InstallmentPurchase` | `expense_value: float` (valor da despesa), `installments: int` (parcelas), `start_month: int`, `start_year: int` (compra parcelada a agendar — entrada das projeções; data **obrigatória**) |
 | `InstallmentEntry` | `installment_number: int`, `month: int`, `year: int`, `amount: float` |
 | `MonthlyInvoice` | `month: int`, `year: int`, `total: float` (fatura consolidada de um mês) |
 
@@ -245,8 +244,8 @@ Base das coberturas MC/DC (cobertura de condição/decisão modificada) nos test
 #### `project_installments(expense_value, installments, start_month, start_year) -> list[InstallmentEntry]`
 Distribui o valor da despesa (`expense_value`) em `installments` (parcelas) mensais iguais (arredondadas em 2 casas). A última parcela (`installment`) absorve o erro de arredondamento, garantindo que `Σ parcelas == expense_value` (valor da despesa). Suporta virada de ano (dezembro → janeiro do ano seguinte).
 
-#### `project_monthly_invoices(purchases, reference_month, reference_year, months_ahead) -> list[MonthlyInvoice]`
-Recebe uma lista de `InstallmentPurchase` (compras parceladas) e consolida as parcelas (`installments`) de **todas** elas por mês, somando o que cai em cada um dos `months_ahead` meses a partir de `(reference_month, reference_year)` inclusive. Todo mês da janela aparece (total `0.0` se não houver parcela). **Compõe** `project_installments` (reuso da lógica testada) e herda sua política estrita. O "hoje" é injetado pelo router — a função permanece pura e determinística. Levanta `ValueError` para `months_ahead < 1`, `reference_month` fora de 1–12 ou `reference_year < 1`.
+#### `project_monthly_invoices(expenses, reference_month, reference_year, months_ahead) -> list[MonthlyInvoice]`
+Recebe uma lista de `ExpenseData` (despesas) e consolida as parcelas (`installments`) de **todas** elas por mês, somando o que cai em cada um dos `months_ahead` meses a partir de `(reference_month, reference_year)` inclusive. Todo mês da janela aparece (total `0.0` se não houver parcela). **Compõe** `project_installments` (reuso da lógica testada) e herda sua política estrita. O "hoje" é injetado pelo router — a função permanece pura e determinística. Levanta `ValueError` para `months_ahead < 1`, `reference_month` fora de 1–12 ou `reference_year < 1`.
 
 #### `calculate_net_worth(investments, balance) -> float`
 Calcula o patrimônio líquido (`net_worth`) a partir dos investimentos (`investments`) e do saldo (`balance`).

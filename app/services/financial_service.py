@@ -12,7 +12,13 @@ class IncomeData:
 @dataclass
 class ExpenseData:
     expense_value: float
-    installment: int = 1
+    installment: int
+    # data da primeira parcela — intrínseca a uma despesa, obrigatória (sem
+    # default, pois não há data "neutra"). As funções que não dependem de data
+    # (calculate_balance, calculate_category_totals) simplesmente não leem
+    # estes campos. `category` mantém default por ter semântica clara ("geral").
+    start_month: int
+    start_year: int
     category: str = "geral"
 
 @dataclass
@@ -28,19 +34,6 @@ class BillData:
 class InvestmentData:
     value_invested: float
     dividends: float = 0.0
-
-@dataclass
-class InstallmentPurchase:
-    """
-    Uma compra parcelada a ser agendada no tempo: valor total, número de
-    parcelas e a data (mês/ano) da primeira parcela. É a entrada das projeções
-    de fatura — todos os campos são obrigatórios, pois a data de uma compra
-    parcelada é dado real, nunca ausente.
-    """
-    expense_value: float
-    installments: int
-    start_month: int
-    start_year: int
 
 @dataclass
 class InstallmentEntry:
@@ -174,13 +167,13 @@ def project_installments(
 
 
 def project_monthly_invoices(
-    purchases: list[InstallmentPurchase],
+    expenses: list[ExpenseData],
     reference_month: int,
     reference_year: int,
     months_ahead: int,
 ) -> list[MonthlyInvoice]:
     """
-    Consolida as parcelas de todas as compras parceladas em faturas mensais.
+    Consolida as parcelas de todas as despesas em faturas mensais.
 
     Soma o valor de cada parcela que cai dentro da janela de `months_ahead`
     meses a partir de (reference_month, reference_year) inclusive. Todo mês da
@@ -188,8 +181,8 @@ def project_monthly_invoices(
     (total 0.0). Parcelas fora da janela (passadas ou além do horizonte) são
     ignoradas.
 
-    Compõe `project_installments` para cada compra, herdando sua validação
-    estrita (installments >= 1) e o suporte a virada de ano.
+    Compõe `project_installments` para cada despesa, herdando sua validação
+    estrita (installment >= 1) e o suporte a virada de ano.
     """
     if not (1 <= reference_month <= 12):
         raise ValueError("reference_month must be between 1 and 12")
@@ -204,12 +197,12 @@ def project_monthly_invoices(
     window = range(start_idx, start_idx + months_ahead)
     totals: dict[int, float] = {idx: 0.0 for idx in window}
 
-    for purchase in purchases:
+    for expense in expenses:
         for entry in project_installments(
-            purchase.expense_value,
-            purchase.installments,
-            purchase.start_month,
-            purchase.start_year,
+            expense.expense_value,
+            expense.installment,
+            expense.start_month,
+            expense.start_year,
         ):
             idx = entry.year * 12 + (entry.month - 1)
             if idx in totals:

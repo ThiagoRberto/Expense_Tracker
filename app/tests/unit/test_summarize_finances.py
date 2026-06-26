@@ -8,7 +8,7 @@ class TestSummarizeFinances:
     def test_full_summary_without_ceiling(self):
         result = summarize_finances(
             [IncomeData(5000)],
-            [ExpenseData(1200, 3)],
+            [ExpenseData(1200, 3, 1, 2025)],
             [BillData(300)],
             [InvestmentData(10000, 500)],
         )
@@ -21,7 +21,7 @@ class TestSummarizeFinances:
     def test_budget_status_ok(self):
         result = summarize_finances(
             [IncomeData(5000)],
-            [ExpenseData(1200, 3)],
+            [ExpenseData(1200, 3, 1, 2025)],
             [BillData(300)],
             [],
             budget_ceiling=1000,
@@ -31,7 +31,7 @@ class TestSummarizeFinances:
     def test_budget_status_warning(self):
         result = summarize_finances(
             [IncomeData(5000)],
-            [ExpenseData(500, 1)],
+            [ExpenseData(500, 1, 1, 2025)],
             [BillData(400)],
             [],
             budget_ceiling=1000,
@@ -41,7 +41,7 @@ class TestSummarizeFinances:
     def test_budget_status_exceeded(self):
         result = summarize_finances(
             [IncomeData(5000)],
-            [ExpenseData(600, 1)],
+            [ExpenseData(600, 1, 1, 2025)],
             [BillData(500)],
             [],
             budget_ceiling=1000,

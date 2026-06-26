@@ -8,7 +8,7 @@ class TestCalculateBalance:
     def test_basic_balance(self):
         # 5000 - (1200/3) - 300 = 4300
         assert calculate_balance(
-            [IncomeData(5000)], [ExpenseData(1200, 3)], [BillData(300)]
+            [IncomeData(5000)], [ExpenseData(1200, 3, 1, 2025)], [BillData(300)]
         ) == 4300.0
 
     def test_multiple_incomes(self):
@@ -17,7 +17,7 @@ class TestCalculateBalance:
 
     def test_multiple_expenses_different_installments(self):
         # 600/2 + 900/3 = 300 + 300 = 600
-        expenses = [ExpenseData(600, 2), ExpenseData(900, 3)]
+        expenses = [ExpenseData(600, 2, 1, 2025), ExpenseData(900, 3, 1, 2025)]
         assert calculate_balance([], expenses, []) == -600.0
 
     def test_multiple_bills(self):
@@ -25,7 +25,7 @@ class TestCalculateBalance:
         assert calculate_balance([], [], bills) == -350.0
 
     def test_single_installment_full_value_this_month(self):
-        assert calculate_balance([], [ExpenseData(500, 1)], []) == -500.0
+        assert calculate_balance([], [ExpenseData(500, 1, 1, 2025)], []) == -500.0
 
     def test_negative_balance_deficit(self):
         assert calculate_balance([IncomeData(1000)], [], [BillData(1500)]) == -500.0
@@ -42,14 +42,14 @@ class TestCalculateBalance:
 
     def test_exact_zero_balance(self):
         incomes = [IncomeData(500)]
-        expenses = [ExpenseData(300, 1)]
+        expenses = [ExpenseData(300, 1, 1, 2025)]
         bills = [BillData(200)]
         assert calculate_balance(incomes, expenses, bills) == 0.0
 
     # --- edge: installment=0 não divide por zero (max(0,1)=1) ---
 
     def test_installment_zero_treated_as_one(self):
-        assert calculate_balance([], [ExpenseData(300, 0)], []) == -300.0
+        assert calculate_balance([], [ExpenseData(300, 0, 1, 2025)], []) == -300.0
 
     # --- validações: valores negativos levantam ValueError ---
 
@@ -59,7 +59,7 @@ class TestCalculateBalance:
 
     def test_negative_expense_raises(self):
         with pytest.raises(ValueError, match="Expense values cannot be negative"):
-            calculate_balance([], [ExpenseData(-100, 1)], [])
+            calculate_balance([], [ExpenseData(-100, 1, 1, 2025)], [])
 
     def test_negative_bill_raises(self):
         with pytest.raises(ValueError, match="Bill values cannot be negative"):

@@ -32,15 +32,14 @@ O arquivo define dataclasses (classes de dados) próprias para desacoplar a lóg
 | Dataclass | Campos |
 |-----------|--------|
 | `IncomeData` | `income_value: float` (valor da receita) |
-| `ExpenseData` | `expense_value: float` (valor da despesa), `installment: int = 1` (parcelas), `category: str = "geral"` |
+| `ExpenseData` | `expense_value: float` (valor da despesa), `installment: int` (parcelas), `start_month: int`, `start_year: int` (data da 1ª parcela — **obrigatória**), `category: str = "geral"` |
 | `BillData` | `bill_value: float` (valor da conta fixa) |
 | `InvestmentData` | `value_invested: float`, `dividends: float = 0.0` (dividendos) |
 | `CategoryBudgetData` | `category: str`, `ceiling: float` (teto orçamentário) |
-| `InstallmentPurchase` | `expense_value: float` (valor da despesa), `installments: int` (parcelas), `start_month: int`, `start_year: int` |
 | `InstallmentEntry` | `installment_number: int`, `month: int`, `year: int`, `amount: float` |
 | `MonthlyInvoice` | `month: int`, `year: int`, `total: float` (fatura consolidada de um mês) |
 
-> **Por que `ExpenseData` e `InstallmentPurchase` são tipos separados:** cada função recebe exatamente o que precisa (segregação de interface). `calculate_balance` e `calculate_category_totals` não dependem de data, então usam a `ExpenseData` enxuta. As projeções de fatura precisam da data da primeira parcela, então usam a `InstallmentPurchase`, onde `start_month`/`start_year` são **obrigatórios** — a data de uma compra parcelada é dado real, nunca um default. Evita-se assim um campo de data sem semântica numa `ExpenseData` única. A camada pura **nunca** lê o relógio; quem injeta a data real (do ORM) é o router.
+> **`ExpenseData` é o tipo único da despesa** (como os outros `*Data` espelham suas entidades). Carrega todos os campos de uma despesa, inclusive a **data da primeira parcela (`start_month`/`start_year`), obrigatória** — a data de uma compra é dado real, nunca um default sem semântica. `category` mantém default (`"geral"`) por ter sentido claro. Funções que não usam data (`calculate_balance`, `calculate_category_totals`) simplesmente não leem esses campos — uma função usar um subconjunto dos campos de um objeto é normal e não justifica fragmentar o tipo. A camada pura **nunca** lê o relógio; quem injeta a data real (do ORM) é o router.
 
 `BudgetStatus = Literal["OK", "WARNING", "EXCEEDED"]` — tipo de retorno de `check_budget_alert` e `check_all_category_alerts`.
 
@@ -111,7 +110,7 @@ Projeta as faturas futuras de uma compra parcelada, com suporte a virada de ano.
 
 ### `project_monthly_invoices(purchases, reference_month, reference_year, months_ahead) -> list[MonthlyInvoice]`
 
-Recebe uma lista de `InstallmentPurchase` (compras parceladas) e consolida as parcelas (`installments`) de **todas** elas em faturas mensais — responde "quanto vou dever em cada um dos próximos meses".
+Recebe uma lista de `ExpenseData` (despesas) e consolida as parcelas (`installments`) de **todas** elas em faturas mensais — responde "quanto vou dever em cada um dos próximos meses".
 
 **Comportamento:**
 - Soma o valor de cada parcela que cai na janela de `months_ahead` meses a partir de `(reference_month, reference_year)` **inclusive**
@@ -124,7 +123,7 @@ Recebe uma lista de `InstallmentPurchase` (compras parceladas) e consolida as pa
 
 **Exemplo:** janela de 3 meses a partir de nov/2025, com uma compra de R$ 300 em 3x começando em nov/2025:
 ```python
-project_monthly_invoices([InstallmentPurchase(300, 3, 11, 2025)], 11, 2025, 3)
+project_monthly_invoices([ExpenseData(300, 3, 11, 2025)], 11, 2025, 3)
 # → [MonthlyInvoice(11, 2025, 100.0),
 #    MonthlyInvoice(12, 2025, 100.0),
 #    MonthlyInvoice(1, 2026, 100.0)]
@@ -176,9 +175,9 @@ Agrupa o custo mensal de cada despesa (`expense`) por categoria.
 **Exemplo:**
 ```python
 expenses = [
-    ExpenseData(600, 2, "alimentação"),  # 300/mês (parcela de compra em 2x)
-    ExpenseData(300, 1, "alimentação"),  # 300/mês (compra à vista)
-    ExpenseData(400, 1, "transporte"),   # 400/mês
+    ExpenseData(600, 2, 1, 2025, "alimentação"),  # 300/mês (parcela de compra em 2x)
+    ExpenseData(300, 1, 1, 2025, "alimentação"),  # 300/mês (compra à vista)
+    ExpenseData(400, 1, 1, 2025, "transporte"),   # 400/mês
 ]
 calculate_category_totals(expenses)
 # → {"alimentação": 600.0, "transporte": 400.0}

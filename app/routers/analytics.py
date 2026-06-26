@@ -12,7 +12,6 @@ from services.financial_service import (
     summarize_finances, calculate_category_totals, check_all_category_alerts,
     project_installments, project_monthly_invoices,
     IncomeData, ExpenseData, BillData, InvestmentData, CategoryBudgetData,
-    InstallmentPurchase,
 )
 from database.database import get_db
 from dependencies import get_user_or_404
@@ -24,19 +23,13 @@ router = APIRouter(prefix="/users/{user_id}", tags=["analytics"])
 
 
 def _to_expense_data(expense) -> ExpenseData:
-    """Converte um Expense (ORM) na ExpenseData pura — usada por saldo/categoria,
-    que não dependem da data da compra."""
-    return ExpenseData(expense.expense_value, expense.installment, expense.category)
-
-
-def _to_installment_purchase(expense) -> InstallmentPurchase:
-    """Converte um Expense (ORM) na InstallmentPurchase pura — usada pelas
-    projeções de fatura, que precisam da data da primeira parcela."""
-    return InstallmentPurchase(
+    """Converte um Expense (ORM) na ExpenseData pura da camada de serviço."""
+    return ExpenseData(
         expense.expense_value,
         expense.installment,
         expense.start_month,
         expense.start_year,
+        expense.category,
     )
 
 
@@ -119,7 +112,7 @@ def get_monthly_invoices(
     # permanece pura e determinística.
     now = datetime.now()
     invoices = project_monthly_invoices(
-        [_to_installment_purchase(e) for e in user.expenses],
+        [_to_expense_data(e) for e in user.expenses],
         now.month,
         now.year,
         months_ahead,
