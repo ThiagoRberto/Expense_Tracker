@@ -164,6 +164,8 @@ Relacionamentos um-para-muitos com: `bills` (contas fixas), `expenses` (despesas
 ### `CategoryBudget` — Teto orçamentário por categoria
 `id`, `category` (String), `ceiling` (teto, Float), `user_id` FK
 
+Possui `UniqueConstraint("user_id", "category")` — cada usuário só pode ter um teto por categoria. Tentar criar um teto duplicado retorna **409 Conflict**.
+
 ---
 
 ## Schemas (Pydantic v2)
@@ -313,3 +315,5 @@ pytest
 pytest -v                                        # saída detalhada
 pytest --cov=services --cov-report=term-missing  # cobertura da camada de serviço
 ```
+
+> **Atenção a mudanças de schema:** `Base.metadata.create_all` apenas **cria** tabelas que ainda não existem — não altera tabelas já criadas. Ao mudar um modelo (ex.: adicionar uma coluna ou a `UniqueConstraint` de `CategoryBudget`), apague o `financial.db` existente para que ele seja recriado com o schema novo. O banco em memória dos testes nasce sempre do schema atual, então os testes não são afetados. (Num projeto de produção, isso seria resolvido com migrations, ex.: Alembic.)

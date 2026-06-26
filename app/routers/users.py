@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session, joinedload
 
 import models
@@ -13,20 +13,9 @@ from services.financial_service import (
     IncomeData, ExpenseData, BillData, InvestmentData, CategoryBudgetData,
 )
 from database.database import get_db
+from dependencies import get_user_or_404
 
 router = APIRouter(prefix="/users", tags=["users"])
-
-
-def _load_user(user_id: int, db: Session):
-    user = db.query(models.User).options(
-        joinedload(models.User.bills),
-        joinedload(models.User.expenses),
-        joinedload(models.User.incomes),
-        joinedload(models.User.investments),
-    ).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
 
 
 @router.post("", response_model=User)
@@ -58,12 +47,12 @@ def list_users(db: Session = Depends(get_db)):
 
 @router.get("/{user_id}", response_model=User)
 def get_user(user_id: int, db: Session = Depends(get_db)):
-    return _load_user(user_id, db)
+    return get_user_or_404(user_id, db, with_relations=True)
 
 
 @router.get("/{user_id}/summary", response_model=FinancialSummary)
 def get_user_summary(user_id: int, db: Session = Depends(get_db)):
-    user = _load_user(user_id, db)
+    user = get_user_or_404(user_id, db, with_relations=True)
     return summarize_finances(
         incomes=[IncomeData(i.income_value) for i in user.incomes],
         expenses=[ExpenseData(e.expense_value, e.installment, e.category) for e in user.expenses],
@@ -75,7 +64,7 @@ def get_user_summary(user_id: int, db: Session = Depends(get_db)):
 
 @router.get("/{user_id}/category-alerts", response_model=CategoryAlertsResponse)
 def get_category_alerts(user_id: int, db: Session = Depends(get_db)):
-    user = _load_user(user_id, db)
+    user = get_user_or_404(user_id, db, with_relations=True)
     category_budgets = (
         db.query(models.CategoryBudget)
         .filter(models.CategoryBudget.user_id == user_id)
@@ -101,7 +90,7 @@ def get_category_alerts(user_id: int, db: Session = Depends(get_db)):
 
 @router.get("/{user_id}/installments", response_model=InstallmentsResponse)
 def get_installments(user_id: int, db: Session = Depends(get_db)):
-    user = _load_user(user_id, db)
+    user = get_user_or_404(user_id, db, with_relations=True)
     projections = []
     for expense in user.expenses:
         entries = project_installments(

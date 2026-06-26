@@ -1,6 +1,7 @@
 from typing import List
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 import models
 from schemas.category_budget import CategoryBudget, CategoryBudgetCreate
@@ -15,7 +16,14 @@ def create_category_budget(user_id: int, budget: CategoryBudgetCreate, db: Sessi
     get_user_or_404(user_id, db)
     db_budget = models.CategoryBudget(**budget.model_dump(), user_id=user_id)
     db.add(db_budget)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail=f"Budget for category '{budget.category}' already exists",
+        )
     db.refresh(db_budget)
     return db_budget
 

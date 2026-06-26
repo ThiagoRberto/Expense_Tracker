@@ -1,8 +1,8 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 class BillBase(BaseModel):
     name: str
-    bill_value: float
+    bill_value: float = Field(ge=0)
 
 class BillCreate(BillBase):
     pass

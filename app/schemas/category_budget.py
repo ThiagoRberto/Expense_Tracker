@@ -1,9 +1,9 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CategoryBudgetBase(BaseModel):
     category: str
-    ceiling: float
+    ceiling: float = Field(gt=0)
 
 
 class CategoryBudgetCreate(CategoryBudgetBase):

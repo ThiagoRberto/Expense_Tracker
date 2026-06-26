@@ -1,9 +1,9 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 class InvestmentBase(BaseModel):
     name: str
-    value_invested: float
-    dividends: float = 0.0
+    value_invested: float = Field(ge=0)
+    dividends: float = Field(default=0.0, ge=0)
 
 class InvestmentCreate(InvestmentBase):
     pass

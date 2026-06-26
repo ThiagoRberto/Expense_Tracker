@@ -39,6 +39,26 @@ class InstallmentEntry:
 BudgetStatus = Literal["OK", "WARNING", "EXCEEDED"]
 
 # ---------------------------------------------------------------------------
+# Helpers internos
+# ---------------------------------------------------------------------------
+
+def _monthly_amount(expense: ExpenseData) -> float:
+    """
+    Fração mensal de uma despesa — o valor de uma única parcela.
+
+    `installment <= 0` é tratado como 1 (compra à vista), evitando divisão por
+    zero. Esta é a política tolerante das agregações de saldo/categoria;
+    `project_installments` adota a política estrita (levanta ValueError).
+    """
+    return expense.expense_value / max(expense.installment, 1)
+
+
+def _monthly_expense_total(expenses: list[ExpenseData]) -> float:
+    """Soma da fração mensal de todas as despesas."""
+    return sum(_monthly_amount(e) for e in expenses)
+
+
+# ---------------------------------------------------------------------------
 # Regras de negócio
 # ---------------------------------------------------------------------------
 
@@ -60,7 +80,7 @@ def calculate_balance(
 
     total_income = sum(i.income_value for i in incomes)
     # cada despesa parcelada contribui apenas a sua parcela mensal
-    total_expenses = sum(e.expense_value / max(e.installment, 1) for e in expenses)
+    total_expenses = _monthly_expense_total(expenses)
     total_bills = sum(b.bill_value for b in bills)
 
     return round(total_income - total_expenses - total_bills, 2)
@@ -161,8 +181,7 @@ def summarize_finances(
     """
     balance = calculate_balance(incomes, expenses, bills)
     net_worth = calculate_net_worth(investments, balance)
-    total_spending = sum(e.expense_value / max(e.installment, 1) for e in expenses) + \
-                     sum(b.bill_value for b in bills)
+    total_spending = _monthly_expense_total(expenses) + sum(b.bill_value for b in bills)
 
     result = {
         "balance": balance,
@@ -184,7 +203,7 @@ def calculate_category_totals(expenses: list[ExpenseData]) -> dict[str, float]:
     """
     totals: dict[str, float] = {}
     for e in expenses:
-        monthly = round(e.expense_value / max(e.installment, 1), 2)
+        monthly = round(_monthly_amount(e), 2)
         totals[e.category] = round(totals.get(e.category, 0.0) + monthly, 2)
     return totals
 

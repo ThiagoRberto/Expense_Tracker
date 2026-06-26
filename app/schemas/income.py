@@ -1,8 +1,8 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 class IncomeBase(BaseModel):
     name: str
-    income_value: float
+    income_value: float = Field(ge=0)
 
 class IncomeCreate(IncomeBase):
     pass
