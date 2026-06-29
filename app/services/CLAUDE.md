@@ -108,7 +108,7 @@ Projeta as faturas futuras de uma compra parcelada, com suporte a virada de ano.
 
 ---
 
-### `project_monthly_invoices(purchases, reference_month, reference_year, months_ahead) -> list[MonthlyInvoice]`
+### `project_monthly_invoices(expenses, reference_month, reference_year, months_ahead) -> list[MonthlyInvoice]`
 
 Recebe uma lista de `ExpenseData` (despesas) e consolida as parcelas (`installments`) de **todas** elas em faturas mensais — responde "quanto vou dever em cada um dos próximos meses".
 
@@ -148,7 +148,7 @@ Saldo (`balance`) negativo (déficit) reduz o patrimônio líquido. Lista vazia 
 
 ### `summarize_finances(incomes, expenses, bills, investments, budget_ceiling) -> dict`
 
-Função de composição que agrega todos os indicadores financeiros em um único dicionário. Internamente chama `calculate_balance` (saldo), `calculate_net_worth` (patrimônio líquido) e, se `budget_ceiling` (teto orçamentário) for informado, `check_budget_alert`.
+Função de composição que agrega todos os indicadores financeiros em um único dicionário, a partir das receitas (`incomes`), despesas (`expenses`), contas fixas (`bills`) e investimentos (`investments`). Internamente chama `calculate_balance` (saldo), `calculate_net_worth` (patrimônio líquido) e, se `budget_ceiling` (teto orçamentário) for informado, `check_budget_alert` (alerta de teto).
 
 **Retorno:**
 ```python
@@ -157,7 +157,7 @@ Função de composição que agrega todos os indicadores financeiros em um únic
     "net_worth": float,         # patrimônio líquido
     "total_income": float,      # total de receitas
     "total_spending": float,    # total de gastos (despesas + contas fixas)
-    "budget_status": "OK" | "WARNING" | "EXCEEDED"  # apenas se budget_ceiling != None
+    "budget_status": "OK" | "WARNING" | "EXCEEDED"  # status do teto; só aparece se budget_ceiling (teto orçamentário) != None
 }
 ```
 
