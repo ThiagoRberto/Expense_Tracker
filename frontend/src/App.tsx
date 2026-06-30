@@ -14,9 +14,7 @@ import { MonthlyInvoicesPage } from './pages/MonthlyInvoicesPage'
 
 function RequireUser({ children }: { children: ReactNode }) {
   const { userId } = useUser()
-  if (userId === null) {
-    return <Navigate to="/login" replace />
-  }
+  if (userId === null) return <Navigate to="/login" replace />
   return <>{children}</>
 }
 

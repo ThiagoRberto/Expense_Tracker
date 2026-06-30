@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 import models
@@ -24,3 +24,15 @@ def create_investment(user_id: int, investment: InvestmentCreate, db: Session = 
 def list_investments(user_id: int, db: Session = Depends(get_db)):
     get_user_or_404(user_id, db)
     return db.query(models.Investment).filter(models.Investment.user_id == user_id).all()
+
+
+@router.delete("/{investment_id}", status_code=204)
+def delete_investment(user_id: int, investment_id: int, db: Session = Depends(get_db)):
+    get_user_or_404(user_id, db)
+    investment = db.query(models.Investment).filter(
+        models.Investment.id == investment_id, models.Investment.user_id == user_id
+    ).first()
+    if not investment:
+        raise HTTPException(status_code=404, detail="Investment not found")
+    db.delete(investment)
+    db.commit()

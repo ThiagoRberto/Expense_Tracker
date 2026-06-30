@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 import models
@@ -24,3 +24,15 @@ def create_expense(user_id: int, expense: ExpenseCreate, db: Session = Depends(g
 def list_expenses(user_id: int, db: Session = Depends(get_db)):
     get_user_or_404(user_id, db)
     return db.query(models.Expense).filter(models.Expense.user_id == user_id).all()
+
+
+@router.delete("/{expense_id}", status_code=204)
+def delete_expense(user_id: int, expense_id: int, db: Session = Depends(get_db)):
+    get_user_or_404(user_id, db)
+    expense = db.query(models.Expense).filter(
+        models.Expense.id == expense_id, models.Expense.user_id == user_id
+    ).first()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    db.delete(expense)
+    db.commit()

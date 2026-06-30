@@ -32,3 +32,15 @@ def create_category_budget(user_id: int, budget: CategoryBudgetCreate, db: Sessi
 def list_category_budgets(user_id: int, db: Session = Depends(get_db)):
     get_user_or_404(user_id, db)
     return db.query(models.CategoryBudget).filter(models.CategoryBudget.user_id == user_id).all()
+
+
+@router.delete("/{budget_id}", status_code=204)
+def delete_category_budget(user_id: int, budget_id: int, db: Session = Depends(get_db)):
+    get_user_or_404(user_id, db)
+    budget = db.query(models.CategoryBudget).filter(
+        models.CategoryBudget.id == budget_id, models.CategoryBudget.user_id == user_id
+    ).first()
+    if not budget:
+        raise HTTPException(status_code=404, detail="Category budget not found")
+    db.delete(budget)
+    db.commit()

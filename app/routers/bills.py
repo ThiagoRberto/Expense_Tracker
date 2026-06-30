@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 import models
@@ -24,3 +24,15 @@ def create_bill(user_id: int, bill: BillCreate, db: Session = Depends(get_db)):
 def list_bills(user_id: int, db: Session = Depends(get_db)):
     get_user_or_404(user_id, db)
     return db.query(models.Bill).filter(models.Bill.user_id == user_id).all()
+
+
+@router.delete("/{bill_id}", status_code=204)
+def delete_bill(user_id: int, bill_id: int, db: Session = Depends(get_db)):
+    get_user_or_404(user_id, db)
+    bill = db.query(models.Bill).filter(
+        models.Bill.id == bill_id, models.Bill.user_id == user_id
+    ).first()
+    if not bill:
+        raise HTTPException(status_code=404, detail="Bill not found")
+    db.delete(bill)
+    db.commit()

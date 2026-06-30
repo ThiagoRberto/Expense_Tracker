@@ -13,20 +13,22 @@ const NAV_ITEMS = [
 ]
 
 export function Layout() {
-  const { userId, setUserId } = useUser()
+  const { userId, userName, setUser } = useUser()
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
+    <div className="min-h-screen bg-zinc-950">
+      <header className="border-b border-zinc-800 bg-zinc-900">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <h1 className="text-lg font-semibold text-slate-900">Expense Tracker</h1>
+          <h1 className="text-lg font-semibold text-zinc-100">
+            <span className="text-orange-500">Expense</span> Tracker
+          </h1>
           {userId !== null && (
             <button
               type="button"
-              onClick={() => setUserId(null)}
-              className="text-sm text-slate-500 hover:text-slate-700"
+              onClick={() => setUser(null, null)}
+              className="text-sm text-zinc-400 hover:text-zinc-200 transition-colors"
             >
-              Trocar usuário (#{userId})
+              Trocar usuário ({userName ?? `#${userId}`})
             </button>
           )}
         </div>
@@ -36,10 +38,11 @@ export function Layout() {
               <NavLink
                 key={item.to}
                 to={item.to}
+                end={item.to === '/'}
                 className={({ isActive }) =>
                   isActive
-                    ? 'whitespace-nowrap font-medium text-indigo-600'
-                    : 'whitespace-nowrap text-slate-500 hover:text-slate-800'
+                    ? 'whitespace-nowrap font-medium text-orange-400 border-b-2 border-orange-400 pb-0.5'
+                    : 'whitespace-nowrap text-zinc-400 hover:text-zinc-200 transition-colors'
                 }
               >
                 {item.label}

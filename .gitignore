@@ -3,4 +3,6 @@ app/venv
 project.md
 app/financial.db
 venv
-.claude
+app/.coverage
+app/uvicorn.log
+frontend/coverage

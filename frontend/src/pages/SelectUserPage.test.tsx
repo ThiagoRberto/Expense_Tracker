@@ -5,6 +5,16 @@ import { server } from '../test/server'
 import { SelectUserPage } from './SelectUserPage'
 import { UserProvider, useUser } from '../context/UserContext'
 
+const MOCK_USER = {
+  id: 7,
+  name: 'Ana',
+  budget_ceiling: null,
+  bills: [],
+  expenses: [],
+  incomes: [],
+  investments: [],
+}
+
 function CurrentUserProbe() {
   const { userId } = useUser()
   return <p data-testid="current-user">{userId ?? 'none'}</p>
@@ -20,20 +30,50 @@ function renderPage() {
 }
 
 describe('SelectUserPage', () => {
-  it('lists existing users and lets the user pick one', async () => {
+  it('shows the password form after clicking Entrar for an existing user', async () => {
+    server.use(http.get('/api/users', () => HttpResponse.json([MOCK_USER])))
+
+    renderPage()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Entrar' }))
+
+    expect(screen.getByLabelText('Senha')).toBeInTheDocument()
+    expect(screen.getByText(/Entrar como/)).toBeInTheDocument()
+  })
+
+  it('logs in with the correct password and sets the current user', async () => {
     server.use(
-      http.get('/api/users', () =>
-        HttpResponse.json([{ id: 7, name: 'Ana', budget_ceiling: null, bills: [], expenses: [], incomes: [], investments: [] }]),
+      http.get('/api/users', () => HttpResponse.json([MOCK_USER])),
+      http.post('/api/users/login', () => HttpResponse.json(MOCK_USER)),
+    )
+
+    renderPage()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Entrar' }))
+    await userEvent.type(screen.getByLabelText('Senha'), 'senha123')
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    await waitFor(() =>
+      expect(screen.getByTestId('current-user')).toHaveTextContent('7'),
+    )
+  })
+
+  it('shows an error for a wrong password', async () => {
+    server.use(
+      http.get('/api/users', () => HttpResponse.json([MOCK_USER])),
+      http.post('/api/users/login', () =>
+        HttpResponse.json({ detail: 'Invalid name or password' }, { status: 401 }),
       ),
     )
 
     renderPage()
 
-    expect(await screen.findByText('Ana')).toBeInTheDocument()
-
+    await userEvent.click(await screen.findByRole('button', { name: 'Entrar' }))
+    await userEvent.type(screen.getByLabelText('Senha'), 'errada')
     await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
 
-    expect(screen.getByTestId('current-user')).toHaveTextContent('7')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Senha incorreta')
+    expect(screen.getByTestId('current-user')).toHaveTextContent('none')
   })
 
   it('shows an empty state when there are no users', async () => {
@@ -49,10 +89,7 @@ describe('SelectUserPage', () => {
       http.get('/api/users', () => HttpResponse.json([])),
       http.post('/api/users', async ({ request }) => {
         const body = (await request.json()) as Record<string, unknown>
-        return HttpResponse.json(
-          { id: 42, ...body, bills: [], expenses: [], incomes: [], investments: [] },
-          { status: 201 },
-        )
+        return HttpResponse.json({ id: 42, ...body, bills: [], expenses: [], incomes: [], investments: [] }, { status: 201 })
       }),
     )
 

@@ -121,3 +121,49 @@ class TestGetUser:
     def test_get_user_id_zero_returns_404(self, client):
         response = client.get("/users/0")
         assert response.status_code == 404
+
+
+class TestLoginUser:
+    def test_login_returns_user_on_valid_credentials(self, client, user_payload):
+        client.post("/users/", json=user_payload)
+        response = client.post("/users/login", json={"name": "Arthur", "password": "secret"})
+        assert response.status_code == 200
+        assert response.json()["name"] == "Arthur"
+
+    def test_login_includes_related_entities(self, client, user_payload):
+        client.post("/users/", json=user_payload)
+        data = client.post("/users/login", json={"name": "Arthur", "password": "secret"}).json()
+        assert len(data["incomes"]) == 1
+        assert len(data["bills"]) == 1
+
+    def test_login_wrong_password_returns_401(self, client, user_payload):
+        client.post("/users/", json=user_payload)
+        response = client.post("/users/login", json={"name": "Arthur", "password": "errada"})
+        assert response.status_code == 401
+
+    def test_login_unknown_name_returns_401(self, client):
+        response = client.post("/users/login", json={"name": "Ninguem", "password": "abc"})
+        assert response.status_code == 401
+
+    def test_login_does_not_expose_password(self, client, user_payload):
+        client.post("/users/", json=user_payload)
+        data = client.post("/users/login", json={"name": "Arthur", "password": "secret"}).json()
+        assert "password" not in data
+
+
+class TestUpdateUser:
+    def test_patch_sets_budget_ceiling(self, client, user_payload):
+        user_id = client.post("/users/", json=user_payload).json()["id"]
+        response = client.patch(f"/users/{user_id}", json={"budget_ceiling": 3000})
+        assert response.status_code == 200
+        assert response.json()["budget_ceiling"] == 3000
+
+    def test_patch_clears_budget_ceiling_when_null(self, client, user_payload):
+        user_id = client.post("/users/", json=user_payload).json()["id"]
+        response = client.patch(f"/users/{user_id}", json={"budget_ceiling": None})
+        assert response.status_code == 200
+        assert response.json()["budget_ceiling"] is None
+
+    def test_patch_nonexistent_user_returns_404(self, client):
+        response = client.patch("/users/9999", json={"budget_ceiling": 1000})
+        assert response.status_code == 404

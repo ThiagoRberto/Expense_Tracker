@@ -137,3 +137,76 @@ class TestInvestmentsEndpoints:
 
     def test_list_investments_nonexistent_user_returns_404(self, client):
         assert client.get("/users/9999/investments").status_code == 404
+
+
+class TestDeleteEndpoints:
+    def test_delete_expense_returns_204(self, client, user_id):
+        expense_id = client.post(f"/users/{user_id}/expenses", json={
+            "name": "TV", "expense_value": 1500, "installment": 1
+        }).json()["id"]
+        assert client.delete(f"/users/{user_id}/expenses/{expense_id}").status_code == 204
+
+    def test_delete_expense_removes_from_list(self, client, user_id):
+        expense_id = client.post(f"/users/{user_id}/expenses", json={
+            "name": "TV", "expense_value": 1500, "installment": 1
+        }).json()["id"]
+        client.delete(f"/users/{user_id}/expenses/{expense_id}")
+        assert client.get(f"/users/{user_id}/expenses").json() == []
+
+    def test_delete_expense_nonexistent_returns_404(self, client, user_id):
+        assert client.delete(f"/users/{user_id}/expenses/9999").status_code == 404
+
+    def test_delete_bill_returns_204(self, client, user_id):
+        bill_id = client.post(f"/users/{user_id}/bills", json={
+            "name": "Internet", "bill_value": 100
+        }).json()["id"]
+        assert client.delete(f"/users/{user_id}/bills/{bill_id}").status_code == 204
+
+    def test_delete_bill_removes_from_list(self, client, user_id):
+        bill_id = client.post(f"/users/{user_id}/bills", json={
+            "name": "Internet", "bill_value": 100
+        }).json()["id"]
+        client.delete(f"/users/{user_id}/bills/{bill_id}")
+        assert client.get(f"/users/{user_id}/bills").json() == []
+
+    def test_delete_income_returns_204(self, client, user_id):
+        income_id = client.post(f"/users/{user_id}/incomes", json={
+            "name": "Salário", "income_value": 5000
+        }).json()["id"]
+        assert client.delete(f"/users/{user_id}/incomes/{income_id}").status_code == 204
+
+    def test_delete_income_removes_from_list(self, client, user_id):
+        income_id = client.post(f"/users/{user_id}/incomes", json={
+            "name": "Salário", "income_value": 5000
+        }).json()["id"]
+        client.delete(f"/users/{user_id}/incomes/{income_id}")
+        assert client.get(f"/users/{user_id}/incomes").json() == []
+
+    def test_delete_investment_returns_204(self, client, user_id):
+        investment_id = client.post(f"/users/{user_id}/investments", json={
+            "name": "CDB", "value_invested": 5000, "dividends": 0
+        }).json()["id"]
+        assert client.delete(f"/users/{user_id}/investments/{investment_id}").status_code == 204
+
+    def test_delete_investment_removes_from_list(self, client, user_id):
+        investment_id = client.post(f"/users/{user_id}/investments", json={
+            "name": "CDB", "value_invested": 5000, "dividends": 0
+        }).json()["id"]
+        client.delete(f"/users/{user_id}/investments/{investment_id}")
+        assert client.get(f"/users/{user_id}/investments").json() == []
+
+    def test_delete_category_budget_returns_204(self, client, user_id):
+        budget_id = client.post(f"/users/{user_id}/category-budgets", json={
+            "category": "alimentação", "ceiling": 800
+        }).json()["id"]
+        assert client.delete(f"/users/{user_id}/category-budgets/{budget_id}").status_code == 204
+
+    def test_delete_category_budget_removes_from_list(self, client, user_id):
+        budget_id = client.post(f"/users/{user_id}/category-budgets", json={
+            "category": "alimentação", "ceiling": 800
+        }).json()["id"]
+        client.delete(f"/users/{user_id}/category-budgets/{budget_id}")
+        assert client.get(f"/users/{user_id}/category-budgets").json() == []
+
+    def test_delete_category_budget_nonexistent_returns_404(self, client, user_id):
+        assert client.delete(f"/users/{user_id}/category-budgets/9999").status_code == 404

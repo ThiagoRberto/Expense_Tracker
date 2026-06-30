@@ -5,6 +5,18 @@ import { useUser } from '../context/UserContext'
 import { AsyncSection } from '../components/AsyncSection'
 import { formatCurrency } from '../lib/format'
 
+const INPUT = 'mt-1 w-full rounded border border-zinc-600 bg-zinc-800 px-3 py-2 text-sm text-zinc-100'
+const SELECT = 'mt-1 w-full rounded border border-zinc-600 bg-zinc-800 px-3 py-2 text-sm text-zinc-100'
+const BTN_PRIMARY = 'rounded bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 transition-colors'
+
+const MONTHS = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+]
+
+const currentYear = new Date().getFullYear()
+const YEARS = Array.from({ length: 11 }, (_, i) => currentYear - 2 + i)
+
 export function ExpensesPage() {
   const { userId } = useUser()
   const { data: expenses, error, loading, reload } = useAsync(
@@ -15,10 +27,11 @@ export function ExpensesPage() {
   const [category, setCategory] = useState('')
   const [expenseValue, setExpenseValue] = useState('')
   const [installment, setInstallment] = useState('1')
-  const [startMonth, setStartMonth] = useState('')
-  const [startYear, setStartYear] = useState('')
+  const [startMonth, setStartMonth] = useState(String(new Date().getMonth() + 1))
+  const [startYear, setStartYear] = useState(String(currentYear))
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -30,15 +43,15 @@ export function ExpensesPage() {
         category: category.trim() || undefined,
         expense_value: Number(expenseValue),
         installment: installment.trim() ? Number(installment) : undefined,
-        start_month: startMonth.trim() ? Number(startMonth) : undefined,
-        start_year: startYear.trim() ? Number(startYear) : undefined,
+        start_month: startMonth ? Number(startMonth) : undefined,
+        start_year: startYear ? Number(startYear) : undefined,
       })
       setName('')
       setCategory('')
       setExpenseValue('')
       setInstallment('1')
-      setStartMonth('')
-      setStartYear('')
+      setStartMonth(String(new Date().getMonth() + 1))
+      setStartYear(String(currentYear))
       reload()
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Erro ao criar despesa')
@@ -47,58 +60,70 @@ export function ExpensesPage() {
     }
   }
 
+  async function handleDelete(id: number) {
+    await expensesApi.delete(userId as number, id)
+    setDeletingId(null)
+    reload()
+  }
+
   return (
     <div className="space-y-6">
-      <h2 className="text-base font-semibold text-slate-900">Despesas</h2>
+      <h2 className="text-base font-semibold text-zinc-100">Despesas</h2>
       <AsyncSection loading={loading} error={error}>
         {expenses && expenses.length > 0 ? (
-          <ul className="divide-y divide-slate-200 rounded-md border border-slate-200 bg-white">
+          <ul className="divide-y divide-zinc-800 rounded-md border border-zinc-700 bg-zinc-900">
             {expenses.map((expense) => (
               <li key={expense.id} className="flex items-center justify-between px-4 py-2">
-                <span>
+                <span className="text-zinc-200">
                   {expense.name}{' '}
-                  <span className="text-xs text-slate-400">({expense.category})</span>
+                  <span className="text-xs text-zinc-500">({expense.category})</span>
                 </span>
-                <span className="font-medium">
-                  {formatCurrency(expense.expense_value)}
-                  {expense.installment > 1 ? ` em ${expense.installment}x` : ''}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="font-medium text-zinc-100">
+                    {formatCurrency(expense.expense_value)}
+                    {expense.installment > 1 && (
+                      <span className="text-xs text-zinc-400"> em {expense.installment}x</span>
+                    )}
+                  </span>
+                  {deletingId === expense.id ? (
+                    <span className="flex items-center gap-1 text-xs">
+                      <button onClick={() => handleDelete(expense.id)} className="text-red-400 hover:text-red-300 transition-colors">Confirmar</button>
+                      <span className="text-zinc-600">|</span>
+                      <button onClick={() => setDeletingId(null)} className="text-zinc-400 hover:text-zinc-200 transition-colors">Cancelar</button>
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setDeletingId(expense.id)}
+                      className="text-xs text-zinc-500 hover:text-red-400 transition-colors"
+                    >
+                      Excluir
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-slate-500">Nenhuma despesa cadastrada ainda.</p>
+          <p className="text-sm text-zinc-500">Nenhuma despesa cadastrada ainda.</p>
         )}
       </AsyncSection>
 
       <form onSubmit={handleSubmit} className="max-w-sm space-y-3">
         <div>
-          <label htmlFor="expense-name" className="block text-sm text-slate-700">
-            Nome
-          </label>
-          <input
-            id="expense-name"
-            required
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
-          />
+          <label htmlFor="expense-name" className="block text-sm text-zinc-300">Nome</label>
+          <input id="expense-name" required value={name} onChange={(e) => setName(e.target.value)} className={INPUT} />
         </div>
         <div>
-          <label htmlFor="expense-category" className="block text-sm text-slate-700">
-            Categoria (opcional)
-          </label>
+          <label htmlFor="expense-category" className="block text-sm text-zinc-300">Categoria (opcional)</label>
           <input
             id="expense-category"
             value={category}
-            onChange={(event) => setCategory(event.target.value)}
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+            onChange={(e) => setCategory(e.target.value)}
+            className={INPUT}
           />
         </div>
         <div>
-          <label htmlFor="expense-value" className="block text-sm text-slate-700">
-            Valor total
-          </label>
+          <label htmlFor="expense-value" className="block text-sm text-zinc-300">Valor total</label>
           <input
             id="expense-value"
             type="number"
@@ -106,62 +131,55 @@ export function ExpensesPage() {
             min="0"
             required
             value={expenseValue}
-            onChange={(event) => setExpenseValue(event.target.value)}
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+            onChange={(e) => setExpenseValue(e.target.value)}
+            className={INPUT}
           />
         </div>
         <div>
-          <label htmlFor="expense-installment" className="block text-sm text-slate-700">
-            Número de parcelas
-          </label>
+          <label htmlFor="expense-installment" className="block text-sm text-zinc-300">Número de parcelas</label>
           <input
             id="expense-installment"
             type="number"
             min="1"
             value={installment}
-            onChange={(event) => setInstallment(event.target.value)}
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+            onChange={(e) => setInstallment(e.target.value)}
+            className={INPUT}
           />
         </div>
         <div className="flex gap-3">
           <div className="flex-1">
-            <label htmlFor="expense-start-month" className="block text-sm text-slate-700">
-              Mês da 1ª parcela
-            </label>
-            <input
+            <label htmlFor="expense-start-month" className="block text-sm text-zinc-300">Mês da 1ª parcela</label>
+            <select
               id="expense-start-month"
-              type="number"
-              min="1"
-              max="12"
               value={startMonth}
-              onChange={(event) => setStartMonth(event.target.value)}
-              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
-            />
+              onChange={(e) => setStartMonth(e.target.value)}
+              className={SELECT}
+            >
+              {MONTHS.map((label, i) => (
+                <option key={i + 1} value={i + 1}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex-1">
-            <label htmlFor="expense-start-year" className="block text-sm text-slate-700">
-              Ano da 1ª parcela
-            </label>
-            <input
+            <label htmlFor="expense-start-year" className="block text-sm text-zinc-300">Ano da 1ª parcela</label>
+            <select
               id="expense-start-year"
-              type="number"
-              min="1"
               value={startYear}
-              onChange={(event) => setStartYear(event.target.value)}
-              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
-            />
+              onChange={(e) => setStartYear(e.target.value)}
+              className={SELECT}
+            >
+              {YEARS.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
-        {formError && (
-          <p role="alert" className="text-sm text-red-600">
-            {formError}
-          </p>
-        )}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-        >
+        {formError && <p role="alert" className="text-sm text-red-400">{formError}</p>}
+        <button type="submit" disabled={submitting} className={BTN_PRIMARY}>
           {submitting ? 'Salvando...' : 'Adicionar despesa'}
         </button>
       </form>

@@ -109,8 +109,8 @@ describe('ExpensesPage', () => {
     const installmentInput = screen.getByLabelText('Número de parcelas')
     await userEvent.clear(installmentInput)
     await userEvent.type(installmentInput, '6')
-    await userEvent.type(screen.getByLabelText('Mês da 1ª parcela'), '3')
-    await userEvent.type(screen.getByLabelText('Ano da 1ª parcela'), '2026')
+    await userEvent.selectOptions(screen.getByLabelText('Mês da 1ª parcela'), '3')
+    await userEvent.selectOptions(screen.getByLabelText('Ano da 1ª parcela'), '2026')
     await userEvent.click(screen.getByRole('button', { name: 'Adicionar despesa' }))
 
     await waitFor(() => expect(screen.getByText(/Celular/)).toBeInTheDocument())

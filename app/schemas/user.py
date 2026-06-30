@@ -18,6 +18,13 @@ class UserCreate(UserBase):
     investments: List[InvestmentCreate] = []
 
 # `password` fica apenas no schema de entrada (UserCreate); nunca é serializado na saída.
+class UserUpdate(BaseModel):
+    budget_ceiling: Optional[float] = Field(default=None, gt=0)
+
+class LoginRequest(BaseModel):
+    name: str
+    password: str
+
 class User(UserBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
