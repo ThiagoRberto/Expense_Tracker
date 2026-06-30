@@ -56,7 +56,7 @@ class TestCheckBudgetAlert:
     def test_boundary_exactly_80_percent_is_ok(self):
         assert check_budget_alert(800, 1000) == "OK"
 
-    def test_boundary_exactly_80_percent_is_ok(self):
+    def test_boundary_just_above_80_percent_is_warning(self):
         assert check_budget_alert(801, 1000) == "WARNING"
 
     def test_boundary_just_below_ceiling_warning(self):
@@ -65,7 +65,7 @@ class TestCheckBudgetAlert:
     def test_exactly_at_ceiling_exceeded(self):
         assert check_budget_alert(1000, 1000) == "EXCEEDED"
 
-    def test_exactly_at_ceiling_exceeded(self):
+    def test_just_above_ceiling_exceeded(self):
         assert check_budget_alert(1001, 1000) == "EXCEEDED"
 
     # --- entradas inválidas e limite válido ---

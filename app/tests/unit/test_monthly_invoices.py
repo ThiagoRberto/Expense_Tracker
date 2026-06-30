@@ -171,7 +171,7 @@ class TestProjectMonthlyInvoices:
         with pytest.raises(ValueError, match="reference_month must be between 1 and 12"):
             project_monthly_invoices([], -5, 2025, 3)
     
-    def test_reference_month_13_raises(self):
+    def test_reference_month_above_12_raises(self):
         # MC/DC caso 2: C1=F, C2=T → raises (OFF point acima)
         with pytest.raises(ValueError, match="reference_month must be between 1 and 12"):
             project_monthly_invoices([], 17, 2025, 3)
