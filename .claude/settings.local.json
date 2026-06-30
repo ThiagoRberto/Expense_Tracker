@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c ' *)",
+      "Bash(python3 *)",
+      "Bash(venv/bin/pip install *)",
+      "Bash(../venv/bin/python3 -c ' *)",
+      "Bash(venv/bin/pytest *)",
+      "Bash(venv/bin/python3 *)",
+      "Bash(venv/bin/python3.13 *)",
+      "Read(//usr/local/bin/**)",
+      "Read(//usr/bin/**)",
+      "Bash(/usr/bin/python3.10 *)",
+      "Bash(/usr/bin/python3 -m venv --copies venv)",
+      "Bash(/home/arthuroliveira/repo/Expense_Tracker/app/venv/bin/pip install *)",
+      "Bash(/home/arthuroliveira/repo/Expense_Tracker/app/venv/bin/pytest --tb=short -q)",
+      "Read(//usr/**)",
+      "Read(//opt/**)",
+      "Bash(git *)"
+    ]
+  }
+}

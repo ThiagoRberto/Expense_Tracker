@@ -13,10 +13,6 @@ class IncomeData:
 class ExpenseData:
     expense_value: float
     installment: int
-    # data da primeira parcela — intrínseca a uma despesa, obrigatória (sem
-    # default, pois não há data "neutra"). As funções que não dependem de data
-    # (calculate_balance, calculate_category_totals) simplesmente não leem
-    # estes campos. `category` mantém default por ter semântica clara ("geral").
     start_month: int
     start_year: int
     category: str = "geral"
@@ -68,6 +64,24 @@ def _monthly_amount(expense: ExpenseData) -> float:
 def _monthly_expense_total(expenses: list[ExpenseData]) -> float:
     """Soma da fração mensal de todas as despesas."""
     return sum(_monthly_amount(e) for e in expenses)
+
+
+def _to_month_index(month: int, year: int) -> int:
+    """
+    Achata (mês, ano) num único número crescente — o "índice absoluto de mês".
+    Fórmula: year*12 (meses dos anos já passados) + (month-1) (mês dentro do ano,
+    com janeiro = 0).
+    """
+    return year * 12 + (month - 1)
+
+
+def _from_month_index(index: int) -> tuple[int, int]:
+    """
+    Inverso de `_to_month_index`: índice absoluto → (mês, ano).
+    """
+    month = index % 12 + 1
+    year = index // 12
+    return month, year
 
 
 # ---------------------------------------------------------------------------
@@ -191,27 +205,36 @@ def project_monthly_invoices(
     if months_ahead < 1:
         raise ValueError("months_ahead must be at least 1")
 
-    # índice absoluto de mês (ano*12 + mês-1) lineariza a virada de ano,
-    # transformando a janela e o agrupamento em simples comparações inteiras.
-    start_idx = reference_year * 12 + (reference_month - 1)
-    window = range(start_idx, start_idx + months_ahead)
-    totals: dict[int, float] = {idx: 0.0 for idx in window}
+    # A janela é a faixa de meses [referência, referência + months_ahead).
+    # Usamos o "índice absoluto de mês" (ver _to_month_index) para que pertencer
+    # à janela e somar no mês certo virem comparações de inteiros.
+    start_index = _to_month_index(reference_month, reference_year)
+    window = range(start_index, start_index + months_ahead)
 
+    # cada mês da janela começa com total zero
+    totals: dict[int, float] = {index: 0.0 for index in window}
+
+    # para cada despesa, projeta suas parcelas e soma cada uma no mês em que cai
     for expense in expenses:
-        for entry in project_installments(
+        installments = project_installments(
             expense.expense_value,
             expense.installment,
             expense.start_month,
             expense.start_year,
-        ):
-            idx = entry.year * 12 + (entry.month - 1)
-            if idx in totals:
-                totals[idx] += entry.amount
+        )
+        for installment in installments:
+            index = _to_month_index(installment.month, installment.year)
+            if index in totals:  # ignora parcelas fora da janela
+                totals[index] += installment.amount
 
-    return [
-        MonthlyInvoice(month=idx % 12 + 1, year=idx // 12, total=round(totals[idx], 2))
-        for idx in window
-    ]
+    # monta uma fatura por mês da janela, em ordem cronológica
+    invoices: list[MonthlyInvoice] = []
+    for index in window:
+        month, year = _from_month_index(index)
+        invoices.append(
+            MonthlyInvoice(month=month, year=year, total=round(totals[index], 2))
+        )
+    return invoices
 
 
 def calculate_net_worth(
@@ -219,10 +242,15 @@ def calculate_net_worth(
     balance: float,
 ) -> float:
     """
-    Patrimônio líquido = saldo disponível + capital investido + dividendos acumulados.
+    Patrimônio líquido = saldo do mês + tudo que está investido (capital + dividendos).
 
-    Um saldo negativo (déficit) entra naturalmente como parcela negativa da soma,
-    reduzindo o patrimônio.
+    `balance` aqui é o SALDO mensal — o que sobra das receitas depois de descontar
+    despesas e contas fixas (é o que `calculate_balance` devolve). A ideia: pegue o
+    dinheiro "livre" do mês e some tudo que o usuário tem aplicado; isso é o quanto
+    ele vale no total.
+
+    Se o saldo for negativo (gastou mais do que ganhou), ele entra como número
+    negativo na soma e reduz o patrimônio — que é o comportamento correto.
     """
     total_invested = sum(i.value_invested + i.dividends for i in investments)
     return round(balance + total_invested, 2)
