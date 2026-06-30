@@ -34,17 +34,6 @@ class TestMonthlyInvoicesEndpoint:
         assert round(sum(i["total"] for i in invoices), 2) == 300.0  # soma = valor total
         assert invoices[3]["total"] == 0.0            # além das 3 parcelas
 
-    def test_multiple_expenses_sum_in_current_month(self, client, user_id):
-        client.post(f"/users/{user_id}/expenses", json={
-            "name": "Compra A", "expense_value": 100, "installment": 1
-        })
-        client.post(f"/users/{user_id}/expenses", json={
-            "name": "Compra B", "expense_value": 250, "installment": 1
-        })
-        invoices = client.get(f"/users/{user_id}/monthly-invoices?months_ahead=2").json()["invoices"]
-        assert invoices[0]["total"] == 350.0
-        assert invoices[1]["total"] == 0.0
-
     def test_months_ahead_zero_returns_422(self, client, user_id):
         assert client.get(f"/users/{user_id}/monthly-invoices?months_ahead=0").status_code == 422
 

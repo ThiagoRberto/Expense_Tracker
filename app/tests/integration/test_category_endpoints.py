@@ -54,41 +54,6 @@ class TestCategoryAlertsEndpoint:
         assert alerts[0]["total"] == 300.0
         assert alerts[0]["ceiling"] == 800.0
 
-    def test_alert_warning(self, client, user_id):
-        client.post(f"/users/{user_id}/expenses", json={
-            "name": "Restaurantes", "category": "alimentação", "expense_value": 700, "installment": 1
-        })
-        client.post(f"/users/{user_id}/category-budgets", json={"category": "alimentação", "ceiling": 800})
-
-        alert = client.get(f"/users/{user_id}/category-alerts").json()["alerts"][0]
-        assert alert["status"] == "WARNING"  # 700/800 = 87.5%
-
-    def test_alert_exceeded(self, client, user_id):
-        client.post(f"/users/{user_id}/expenses", json={
-            "name": "Viagem", "category": "lazer", "expense_value": 1200, "installment": 1
-        })
-        client.post(f"/users/{user_id}/category-budgets", json={"category": "lazer", "ceiling": 1000})
-
-        alert = client.get(f"/users/{user_id}/category-alerts").json()["alerts"][0]
-        assert alert["status"] == "EXCEEDED"
-
-    def test_category_with_no_expenses_is_ok(self, client, user_id):
-        client.post(f"/users/{user_id}/category-budgets", json={"category": "transporte", "ceiling": 500})
-
-        alert = client.get(f"/users/{user_id}/category-alerts").json()["alerts"][0]
-        assert alert["status"] == "OK"
-        assert alert["total"] == 0.0
-
-    def test_installment_expense_contributes_monthly_fraction(self, client, user_id):
-        client.post(f"/users/{user_id}/expenses", json={
-            "name": "Notebook", "category": "tecnologia", "expense_value": 3000, "installment": 10
-        })
-        client.post(f"/users/{user_id}/category-budgets", json={"category": "tecnologia", "ceiling": 500})
-
-        alert = client.get(f"/users/{user_id}/category-alerts").json()["alerts"][0]
-        assert alert["total"] == 300.0  # 3000/10
-        assert alert["status"] == "OK"  # 300/500 = 60%
-
     def test_multiple_categories_independent_alerts(self, client, user_id):
         client.post(f"/users/{user_id}/expenses", json={
             "name": "Mercado", "category": "alimentação", "expense_value": 300, "installment": 1

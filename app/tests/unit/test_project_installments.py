@@ -1,5 +1,5 @@
 import pytest
-from services.financial_service import project_installments
+from services.financial_service import project_installments, InstallmentEntry
 
 
 class TestProjectInstallments:
@@ -7,70 +7,91 @@ class TestProjectInstallments:
 
     def test_single_installment(self):
         result = project_installments(300.0, 1, 6, 2025)
-        assert len(result) == 1
-        assert result[0].amount == 300.0
-        assert result[0].month == 6
-        assert result[0].year == 2025
-        assert result[0].installment_number == 1
+        assert result == [InstallmentEntry(1, 6, 2025, 300.0)]
 
     def test_three_installments_same_year(self):
         result = project_installments(900.0, 3, 3, 2025)
-        assert [(e.month, e.year) for e in result] == [(3, 2025), (4, 2025), (5, 2025)]
-        assert all(e.amount == 300.0 for e in result)
+        assert result == [
+            InstallmentEntry(1, 3, 2025, 300.0),
+            InstallmentEntry(2, 4, 2025, 300.0),
+            InstallmentEntry(3, 5, 2025, 300.0),
+        ]
 
     def test_installment_numbers_are_sequential(self):
         result = project_installments(400.0, 4, 1, 2025)
-        assert [e.installment_number for e in result] == [1, 2, 3, 4]
+        assert result == [
+            InstallmentEntry(1, 1, 2025, 100.0),
+            InstallmentEntry(2, 2, 2025, 100.0),
+            InstallmentEntry(3, 3, 2025, 100.0),
+            InstallmentEntry(4, 4, 2025, 100.0),
+        ]
 
     # --- edge: virada de ano ---
 
     def test_year_rollover_from_november(self):
         result = project_installments(1200.0, 3, 11, 2025)
-        assert [(e.month, e.year) for e in result] == [
-            (11, 2025), (12, 2025), (1, 2026)
+        assert result == [
+            InstallmentEntry(1, 11, 2025, 400.0),
+            InstallmentEntry(2, 12, 2025, 400.0),
+            InstallmentEntry(3,  1, 2026, 400.0),
         ]
 
     def test_year_rollover_from_december(self):
         result = project_installments(240.0, 2, 12, 2025)
-        assert [(e.month, e.year) for e in result] == [(12, 2025), (1, 2026)]
+        assert result == [
+            InstallmentEntry(1, 12, 2025, 120.0),
+            InstallmentEntry(2,  1, 2026, 120.0),
+        ]
 
     def test_full_year_installments_from_january(self):
         result = project_installments(1200.0, 12, 1, 2025)
-        months = [e.month for e in result]
-        assert months == list(range(1, 13))
-        assert all(e.year == 2025 for e in result)
+        assert result == [
+            InstallmentEntry( 1,  1, 2025, 100.0),
+            InstallmentEntry( 2,  2, 2025, 100.0),
+            InstallmentEntry( 3,  3, 2025, 100.0),
+            InstallmentEntry( 4,  4, 2025, 100.0),
+            InstallmentEntry( 5,  5, 2025, 100.0),
+            InstallmentEntry( 6,  6, 2025, 100.0),
+            InstallmentEntry( 7,  7, 2025, 100.0),
+            InstallmentEntry( 8,  8, 2025, 100.0),
+            InstallmentEntry( 9,  9, 2025, 100.0),
+            InstallmentEntry(10, 10, 2025, 100.0),
+            InstallmentEntry(11, 11, 2025, 100.0),
+            InstallmentEntry(12, 12, 2025, 100.0),
+        ]
 
     def test_13_installments_crosses_two_years(self):
         result = project_installments(1300.0, 13, 1, 2025)
-        assert result[-1].month == 1
-        assert result[-1].year == 2026
+        assert result[-1] == InstallmentEntry(13, 1, 2026, 100.0)
 
     # --- edge: correção de arredondamento na última parcela ---
 
     def test_rounding_correction_on_last_installment(self):
         # 10 / 3 = 3.333... → [3.33, 3.33, 3.34]
         result = project_installments(10.0, 3, 1, 2025)
-        assert result[0].amount == 3.33
-        assert result[1].amount == 3.33
-        assert result[2].amount == 3.34
-
-    def test_sum_equals_total_expense(self):
-        result = project_installments(10.0, 3, 1, 2025)
-        assert sum(e.amount for e in result) == pytest.approx(10.0)
+        assert result == [
+            InstallmentEntry(1, 1, 2025, 3.33),
+            InstallmentEntry(2, 2, 2025, 3.33),
+            InstallmentEntry(3, 3, 2025, 3.34),
+        ]
 
     def test_zero_expense_all_amounts_zero(self):
         result = project_installments(0.0, 3, 1, 2025)
-        assert all(e.amount == 0.0 for e in result)
+        assert result == [
+            InstallmentEntry(1, 1, 2025, 0.0),
+            InstallmentEntry(2, 2, 2025, 0.0),
+            InstallmentEntry(3, 3, 2025, 0.0),
+        ]
 
     # --- fronteiras de mês válido ---
 
     def test_start_month_1_valid(self):
         result = project_installments(100.0, 1, 1, 2025)
-        assert result[0].month == 1
+        assert result == [InstallmentEntry(1, 1, 2025, 100.0)]
 
     def test_start_month_12_valid(self):
         result = project_installments(100.0, 1, 12, 2025)
-        assert result[0].month == 12
+        assert result == [InstallmentEntry(1, 12, 2025, 100.0)]
 
     # --- entradas inválidas ---
 

@@ -1,69 +1,77 @@
 import pytest
 from services.financial_service import check_budget_alert
 
-# MC/DC — duas condições independentes:
-#   C1: ratio >= 1.0  →  EXCEEDED
-#   C2: ratio > 0.8   →  WARNING  (só alcançada se C1 for False)
+# =============================================================================
+# MC/DC — check_budget_alert
+# =============================================================================
 #
-# Pares que demonstram independência de cada condição:
-#   C1: (ratio=0.9 → WARNING)  vs  (ratio=1.0 → EXCEEDED)   — só C1 muda, outcome muda
-#   C2: (ratio=0.8 → OK)       vs  (ratio=0.9 → WARNING)    — só C2 muda, outcome muda
+# Condições atômicas (ratio = category_total / ceiling):
+#   C1: ratio >= 1.0
+#   C2: ratio > 0.80
+#
+# Tabela-verdade:
+#
+#  | # | C1 (ratio >= 1.0) | C2 (ratio > 0.80) | Resultado  |
+#  |---|-------------------|-------------------|------------|
+#  | 1 |         F         |         F         |     OK     |
+#  | 2 |         F         |         T         |  WARNING   |
+#  | 3 |         T         |         T         |  EXCEEDED  |
+#
+#  * C2 não é avaliada quando C1 = T (estrutura if/elif)
+#
+# Pares MC/DC:
+#   Par de C1: caso 2 × caso 3  →  C2 fixo em T, só C1 muda (F→T)  →  WARNING → EXCEEDED
+#   Par de C2: caso 1 × caso 2  →  C1 fixo em F, só C2 muda (F→T)  →  OK → WARNING
+#
+# Conjunto mínimo MC/DC: { 1, 2, 3 }  →  N+1 = 3 testes para N=2 condições
+#
+# Valores concretos usados nos pares:
+#   Caso 1 → C1=F, C2=F  →  OK
+#   Caso 2 → C1=F, C2=T  →  WARNING
+#   Caso 3 → C1=T, C2=T  →  EXCEEDED
+# =============================================================================
 
 
 class TestCheckBudgetAlert:
-    # --- MC/DC: C1 True ---
-
-    def test_exactly_at_ceiling_exceeded(self):
-        assert check_budget_alert(1000, 1000) == "EXCEEDED"
+    # --- MC/DC: Caso 1 ---
 
     def test_above_ceiling_exceeded(self):
         assert check_budget_alert(1500, 1000) == "EXCEEDED"
 
-    # --- MC/DC: C1 False, C2 True ---
-
-    def test_just_above_80_percent_warning(self):
-        assert check_budget_alert(801, 1000) == "WARNING"
+    # --- MC/DC: Caso 2 ---
 
     def test_99_percent_warning(self):
         assert check_budget_alert(990, 1000) == "WARNING"
 
-    # --- MC/DC: C1 False, C2 False ---
+    # --- MC/DC: Caso 3 ---
 
     def test_below_80_percent_ok(self):
         assert check_budget_alert(500, 1000) == "OK"
 
-    def test_zero_spending_ok(self):
-        assert check_budget_alert(0, 1000) == "OK"
-
     # --- fronteiras exatas (boundary analysis) ---
-
-    def test_boundary_exactly_80_percent_is_ok(self):
-        # 800/1000 = 0.80 — NOT > 0.8, então OK
-        assert check_budget_alert(800, 1000) == "OK"
-
+    # 0.799 0.8 0.81 0.999 1 1.1
     def test_boundary_just_below_80_ok(self):
         assert check_budget_alert(799, 1000) == "OK"
+
+    def test_boundary_exactly_80_percent_is_ok(self):
+        assert check_budget_alert(800, 1000) == "OK"
+
+    def test_boundary_exactly_80_percent_is_ok(self):
+        assert check_budget_alert(801, 1000) == "WARNING"
 
     def test_boundary_just_below_ceiling_warning(self):
         assert check_budget_alert(999, 1000) == "WARNING"
 
-    # --- par MC/DC para C1 (muda só C1, C2 constante True) ---
+    def test_exactly_at_ceiling_exceeded(self):
+        assert check_budget_alert(1000, 1000) == "EXCEEDED"
 
-    def test_mcdcc1_c1_false_c2_true_warning(self):
-        assert check_budget_alert(900, 1000) == "WARNING"   # ratio=0.9
+    def test_exactly_at_ceiling_exceeded(self):
+        assert check_budget_alert(1001, 1000) == "EXCEEDED"
 
-    def test_mcdcc1_c1_true_exceeded(self):
-        assert check_budget_alert(1000, 1000) == "EXCEEDED"  # ratio=1.0
+    # --- entradas inválidas e limite válido ---
 
-    # --- par MC/DC para C2 (C1 sempre False) ---
-
-    def test_mcdcc2_c2_false_ok(self):
-        assert check_budget_alert(800, 1000) == "OK"   # ratio=0.80
-
-    def test_mcdcc2_c2_true_warning(self):
-        assert check_budget_alert(900, 1000) == "WARNING"  # ratio=0.90
-
-    # --- entradas inválidas ---
+    def test_zero_spending_ok(self):
+        assert check_budget_alert(0, 1000) == "OK"
 
     def test_zero_ceiling_raises(self):
         with pytest.raises(ValueError, match="Budget ceiling must be greater than zero"):

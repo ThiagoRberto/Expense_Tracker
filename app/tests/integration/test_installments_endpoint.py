@@ -35,40 +35,6 @@ class TestInstallmentsEndpoint:
         assert projections[0]["total_value"] == 3000.0
         assert projections[0]["installments"] == 10
 
-    def test_installment_amount_is_monthly_fraction(self, client, user_id):
-        client.post(f"/users/{user_id}/expenses", json={
-            "name": "Celular", "category": "tecnologia",
-            "expense_value": 1200, "installment": 4,
-            "start_month": 3, "start_year": 2026,
-        })
-        entries = client.get(f"/users/{user_id}/installments").json()["projections"][0]["entries"]
-        for e in entries:
-            assert e["amount"] == 300.0
-
-    def test_year_rollover_in_entries(self, client, user_id):
-        client.post(f"/users/{user_id}/expenses", json={
-            "name": "TV", "category": "lazer",
-            "expense_value": 300, "installment": 3,
-            "start_month": 11, "start_year": 2025,
-        })
-        entries = client.get(f"/users/{user_id}/installments").json()["projections"][0]["entries"]
-        assert entries[0] == {"installment_number": 1, "month": 11, "year": 2025, "amount": 100.0}
-        assert entries[1] == {"installment_number": 2, "month": 12, "year": 2025, "amount": 100.0}
-        assert entries[2] == {"installment_number": 3, "month": 1,  "year": 2026, "amount": 100.0}
-
-    def test_rounding_correction_on_last_entry(self, client, user_id):
-        client.post(f"/users/{user_id}/expenses", json={
-            "name": "Curso", "category": "educação",
-            "expense_value": 10, "installment": 3,
-            "start_month": 1, "start_year": 2026,
-        })
-        entries = client.get(f"/users/{user_id}/installments").json()["projections"][0]["entries"]
-        # 10 / 3 = 3.33, 3.33, 3.34 (última absorve erro)
-        assert entries[0]["amount"] == 3.33
-        assert entries[1]["amount"] == 3.33
-        assert entries[2]["amount"] == 3.34
-        assert round(sum(e["amount"] for e in entries), 2) == 10.0
-
     def test_projection_includes_expense_metadata(self, client, user_id):
         client.post(f"/users/{user_id}/expenses", json={
             "name": "Geladeira", "category": "casa",

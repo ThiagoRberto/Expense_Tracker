@@ -19,11 +19,11 @@ class TestCalculateCategoryTotals:
 
     def test_multiple_expenses_same_category_are_summed(self):
         expenses = [
-            ExpenseData(600, 2, 1, 2025, "alimentação"),   # 300/mês
-            ExpenseData(300, 1, 1, 2025, "alimentação"),   # 300/mês
+            ExpenseData(600, 2, 1, 2025, "alimentação"),   # 600/2=300/mês
+            ExpenseData(300, 1, 1, 2025, "alimentação"),   # 300/1=300/mês
         ]
         result = calculate_category_totals(expenses)
-        assert result == {"alimentação": 600.0}
+        assert result == {"alimentação": 600.0} # (600/2)+(300/1)=300+300=600
 
     def test_multiple_expenses_different_categories(self):
         expenses = [

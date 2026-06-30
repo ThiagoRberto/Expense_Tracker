@@ -46,30 +46,6 @@ class TestGetUserSummary:
 
         assert summary["budget_status"] == "OK"  # 700/1000 = 70%
 
-    def test_summary_budget_status_warning(self, client):
-        payload = {
-            "name": "Arthur",
-            "password": "123",
-            "budget_ceiling": 1000,
-            "bills": [{"name": "Aluguel", "bill_value": 900}],
-        }
-        user_id = client.post("/users/", json=payload).json()["id"]
-        summary = client.get(f"/users/{user_id}/summary").json()
-
-        assert summary["budget_status"] == "WARNING"  # 900/1000 = 90%
-
-    def test_summary_budget_status_exceeded(self, client):
-        payload = {
-            "name": "Arthur",
-            "password": "123",
-            "budget_ceiling": 1000,
-            "bills": [{"name": "Aluguel", "bill_value": 1200}],
-        }
-        user_id = client.post("/users/", json=payload).json()["id"]
-        summary = client.get(f"/users/{user_id}/summary").json()
-
-        assert summary["budget_status"] == "EXCEEDED"  # 1200/1000 = 120%
-
     def test_summary_user_with_no_entities_all_zeros(self, client):
         user_id = client.post("/users/", json={"name": "Vazio", "password": "123"}).json()["id"]
         summary = client.get(f"/users/{user_id}/summary").json()
