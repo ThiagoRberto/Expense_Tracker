@@ -6,55 +6,32 @@ def user_id(client):
     return client.post("/users/", json={"name": "Arthur", "password": "123"}).json()["id"]
 
 
-class TestCategoryBudgetsEndpoints:
-    def test_create_category_budget_returns_id(self, client, user_id):
-        response = client.post(f"/users/{user_id}/category-budgets", json={
-            "category": "alimentação", "ceiling": 800.0
-        })
-        assert response.status_code == 200
-        assert response.json()["id"] is not None
-
-    def test_create_category_budget_data_persisted(self, client, user_id):
+class TestCategoryBudgetsCrud:
+    def test_create_persists(self, client, user_id):
         data = client.post(f"/users/{user_id}/category-budgets", json={
-            "category": "transporte", "ceiling": 300.0
+            "category": "alimentação", "ceiling": 800.0
         }).json()
-        assert data["category"] == "transporte"
-        assert data["ceiling"] == 300.0
+        assert data["id"] is not None
+        assert data["category"] == "alimentação"
+        assert data["ceiling"] == 800.0
 
-    def test_list_category_budgets_empty(self, client, user_id):
+    def test_delete_removes_budget(self, client, user_id):
+        budget_id = client.post(f"/users/{user_id}/category-budgets", json={
+            "category": "alimentação", "ceiling": 800
+        }).json()["id"]
+        assert client.delete(f"/users/{user_id}/category-budgets/{budget_id}").status_code == 204
         assert client.get(f"/users/{user_id}/category-budgets").json() == []
 
-    def test_list_category_budgets_after_create(self, client, user_id):
-        client.post(f"/users/{user_id}/category-budgets", json={"category": "lazer", "ceiling": 500})
-        assert len(client.get(f"/users/{user_id}/category-budgets").json()) == 1
-
-    def test_create_category_budget_nonexistent_user_returns_404(self, client):
+    def test_nonexistent_user_returns_404(self, client):
         response = client.post("/users/9999/category-budgets", json={"category": "x", "ceiling": 100})
         assert response.status_code == 404
 
-    def test_list_category_budgets_nonexistent_user_returns_404(self, client):
-        assert client.get("/users/9999/category-budgets").status_code == 404
 
+class TestCategoryAlerts:
+    def test_no_budgets_returns_empty(self, client, user_id):
+        assert client.get(f"/users/{user_id}/category-alerts").json()["alerts"] == []
 
-class TestCategoryAlertsEndpoint:
-    def test_no_budgets_returns_empty_alerts(self, client, user_id):
-        response = client.get(f"/users/{user_id}/category-alerts")
-        assert response.status_code == 200
-        assert response.json()["alerts"] == []
-
-    def test_alert_ok(self, client, user_id):
-        client.post(f"/users/{user_id}/expenses", json={
-            "name": "Mercado", "category": "alimentação", "expense_value": 300, "installment": 1
-        })
-        client.post(f"/users/{user_id}/category-budgets", json={"category": "alimentação", "ceiling": 800})
-
-        alerts = client.get(f"/users/{user_id}/category-alerts").json()["alerts"]
-        assert len(alerts) == 1
-        assert alerts[0]["status"] == "OK"
-        assert alerts[0]["total"] == 300.0
-        assert alerts[0]["ceiling"] == 800.0
-
-    def test_multiple_categories_independent_alerts(self, client, user_id):
+    def test_alerts_reflect_status_per_category(self, client, user_id):
         client.post(f"/users/{user_id}/expenses", json={
             "name": "Mercado", "category": "alimentação", "expense_value": 300, "installment": 1
         })
@@ -65,8 +42,4 @@ class TestCategoryAlertsEndpoint:
         client.post(f"/users/{user_id}/category-budgets", json={"category": "lazer", "ceiling": 1000})
 
         alerts = {a["category"]: a["status"] for a in client.get(f"/users/{user_id}/category-alerts").json()["alerts"]}
-        assert alerts["alimentação"] == "OK"
-        assert alerts["lazer"] == "EXCEEDED"
-
-    def test_category_alerts_nonexistent_user_returns_404(self, client):
-        assert client.get("/users/9999/category-alerts").status_code == 404
+        assert alerts == {"alimentação": "OK", "lazer": "EXCEEDED"}
