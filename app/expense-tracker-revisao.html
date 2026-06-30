@@ -1,0 +1,1203 @@
+
+<title>Expense Tracker — Guia de Revisão</title>
+<style>
+  /* ── reset & base ──────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:        #EEF1F8;
+    --surface:   #F8F9FD;
+    --border:    #D1D9EF;
+    --navy:      #1A2540;
+    --navy-mid:  #2E3F6A;
+    --blue:      #2F54EB;
+    --blue-dim:  #E8EEFB;
+    --green:     #0D7A45;
+    --green-bg:  #E6F7EF;
+    --amber:     #B45309;
+    --amber-bg:  #FEF3C7;
+    --red:       #C0280D;
+    --red-bg:    #FEE8E4;
+    --muted:     #64748B;
+    --code-bg:   #1E2845;
+    --code-fg:   #C8D3F5;
+    --code-kw:   #82AAFF;
+    --code-fn:   #86E1FC;
+    --code-str:  #C3E88D;
+    --code-num:  #FF966C;
+    --code-cm:   #5B6F9E;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--navy);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
+    padding-bottom: 80px;
+  }
+
+  /* ── sticky header ──────────────────────────────── */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--navy);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    height: 44px;
+    padding: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  }
+  .topbar-title {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    padding: 0 20px;
+    border-right: 1px solid rgba(255,255,255,.12);
+    height: 100%;
+    display: flex;
+    align-items: center;
+  }
+  .topbar-nav {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    height: 100%;
+  }
+  .topbar-nav::-webkit-scrollbar { display: none; }
+  .topbar-nav a {
+    color: rgba(255,255,255,.65);
+    text-decoration: none;
+    font-size: 12px;
+    letter-spacing: .03em;
+    padding: 0 14px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    border-right: 1px solid rgba(255,255,255,.07);
+    transition: color .15s, background .15s;
+    white-space: nowrap;
+  }
+  .topbar-nav a:hover { color: #fff; background: rgba(255,255,255,.07); }
+  .topbar-timer {
+    margin-left: auto;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: rgba(255,255,255,.4);
+    padding: 0 16px;
+    white-space: nowrap;
+  }
+
+  /* ── page layout ──────────────────────────────── */
+  .page { max-width: 860px; margin: 0 auto; padding: 40px 24px 0; }
+
+  /* ── hero ──────────────────────────────── */
+  .hero {
+    background: var(--navy);
+    color: #fff;
+    border-radius: 4px;
+    padding: 36px 40px;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    right: -40px; top: -60px;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(47,84,235,.35) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-eyebrow {
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.45);
+    margin-bottom: 8px;
+  }
+  .hero h1 {
+    font-family: 'Palatino Linotype', Palatino, Georgia, serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 14px;
+  }
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .hero-stat {
+    font-size: 12px;
+    color: rgba(255,255,255,.55);
+  }
+  .hero-stat strong { color: rgba(255,255,255,.9); font-variant-numeric: tabular-nums; }
+
+  /* ── sections ──────────────────────────────── */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding: 18px 28px 14px;
+    border-bottom: 1px solid var(--border);
+    background: #fff;
+  }
+  .section-num {
+    font-family: 'Palatino Linotype', Palatino, Georgia, serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--border);
+    line-height: 1;
+    min-width: 32px;
+  }
+  .section-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--navy);
+    flex: 1;
+  }
+  .read-time {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: .04em;
+    white-space: nowrap;
+  }
+  .section-body { padding: 24px 28px; }
+
+  /* ── typography inside sections ──────────────────────────────── */
+  h3 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--blue);
+    margin: 24px 0 10px;
+  }
+  h3:first-child { margin-top: 0; }
+
+  h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--navy);
+    margin: 20px 0 6px;
+  }
+  h4:first-child { margin-top: 0; }
+
+  p { margin-bottom: 10px; }
+  p:last-child { margin-bottom: 0; }
+
+  /* ── code ──────────────────────────────── */
+  pre, code {
+    font-family: 'Consolas', 'Cascadia Code', 'Monaco', 'Menlo', monospace;
+    font-size: 13px;
+  }
+  code {
+    background: var(--blue-dim);
+    color: var(--blue);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-fg);
+    border-radius: 4px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    line-height: 1.55;
+    margin: 12px 0;
+    tab-size: 4;
+  }
+  pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+    font-size: inherit;
+  }
+  .kw  { color: var(--code-kw); }
+  .fn  { color: var(--code-fn); }
+  .str { color: var(--code-str); }
+  .num { color: var(--code-num); }
+  .cm  { color: var(--code-cm); font-style: italic; }
+  .op  { color: #89DDFF; }
+
+  /* ── callouts ──────────────────────────────── */
+  .callout {
+    border-left: 3px solid;
+    padding: 10px 14px;
+    border-radius: 0 3px 3px 0;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  .callout-info  { border-color: var(--blue);  background: var(--blue-dim);  color: var(--navy-mid); }
+  .callout-ok    { border-color: var(--green); background: var(--green-bg); color: var(--green); }
+  .callout-warn  { border-color: var(--amber); background: var(--amber-bg); color: var(--amber); }
+  .callout-bug   { border-color: var(--red);   background: var(--red-bg);   color: var(--red); }
+  .callout strong { font-weight: 700; }
+
+  /* ── tables ──────────────────────────────── */
+  .tbl-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    margin: 10px 0;
+  }
+  th {
+    background: var(--navy);
+    color: rgba(255,255,255,.85);
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 11px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #F4F6FB; }
+
+  /* ── badges ──────────────────────────────── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .badge-ok     { background: var(--green-bg); color: var(--green); }
+  .badge-warn   { background: var(--amber-bg); color: var(--amber); }
+  .badge-exc    { background: var(--red-bg);   color: var(--red); }
+  .badge-blue   { background: var(--blue-dim); color: var(--blue); }
+  .badge-dark   { background: var(--navy); color: #fff; }
+
+  /* ── function cards ──────────────────────────────── */
+  .fn-card {
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .fn-card:last-child { margin-bottom: 0; }
+  .fn-header {
+    background: var(--navy);
+    color: #fff;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .fn-name {
+    font-family: 'Consolas', 'Cascadia Code', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--code-fn);
+  }
+  .fn-sig {
+    font-family: 'Consolas', 'Cascadia Code', monospace;
+    font-size: 12px;
+    color: rgba(255,255,255,.45);
+  }
+  .fn-body { padding: 16px; }
+
+  /* ── test rows ──────────────────────────────── */
+  .test-list { list-style: none; padding: 0; }
+  .test-list li {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .test-list li:last-child { border-bottom: none; }
+  .test-icon { font-size: 10px; color: var(--green); flex-shrink: 0; }
+  .test-icon.bug { color: var(--red); }
+  .test-name {
+    font-family: 'Consolas', monospace;
+    font-size: 12px;
+    color: var(--navy-mid);
+    flex: 1;
+  }
+  .test-desc { color: var(--muted); font-size: 12px; }
+
+  /* ── flow diagram ──────────────────────────────── */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 12px 0;
+  }
+  .flow-step {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+  .flow-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 40px;
+    flex-shrink: 0;
+  }
+  .flow-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+  .flow-line {
+    flex: 1;
+    width: 2px;
+    background: var(--border);
+    margin: 0 auto;
+  }
+  .flow-step:last-child .flow-line { display: none; }
+  .flow-content {
+    flex: 1;
+    padding: 0 0 20px 16px;
+    padding-top: 3px;
+  }
+  .flow-layer {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 2px;
+  }
+  .flow-detail {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .flow-file {
+    font-family: 'Consolas', monospace;
+    font-size: 11px;
+    color: var(--blue);
+    background: var(--blue-dim);
+    padding: 1px 5px;
+    border-radius: 2px;
+    margin-right: 4px;
+  }
+
+  /* ── two-col grid ──────────────────────────────── */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 12px 0;
+  }
+  @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+  .grid-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 14px;
+  }
+  .grid-card-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  /* ── formula box ──────────────────────────────── */
+  .formula {
+    background: var(--code-bg);
+    color: #A9D4FF;
+    font-family: 'Consolas', monospace;
+    font-size: 14px;
+    padding: 12px 16px;
+    border-radius: 3px;
+    margin: 8px 0;
+    line-height: 1.8;
+    overflow-x: auto;
+  }
+  .formula .eq { color: #89DDFF; }
+  .formula .var { color: #C3E88D; }
+  .formula .op2 { color: #FF966C; }
+
+  /* ── status display ──────────────────────────────── */
+  .status-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 8px 0;
+  }
+  .status-chip {
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 6px 12px;
+    font-size: 12px;
+    text-align: center;
+    min-width: 80px;
+  }
+  .status-chip .range { font-size: 11px; color: var(--muted); display: block; margin-bottom: 2px; font-variant-numeric: tabular-nums; }
+  .status-chip .label { font-weight: 700; font-size: 13px; }
+  .status-chip.ok   { border-color: var(--green); background: var(--green-bg); }
+  .status-chip.ok   .label { color: var(--green); }
+  .status-chip.warn { border-color: var(--amber); background: var(--amber-bg); }
+  .status-chip.warn .label { color: var(--amber); }
+  .status-chip.exc  { border-color: var(--red);   background: var(--red-bg); }
+  .status-chip.exc  .label { color: var(--red); }
+
+  /* ── arch layers ──────────────────────────────── */
+  .arch-layers {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 12px 0;
+  }
+  .arch-layer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 14px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+  }
+  .arch-layer-n { background: #EEF1F8; border-color: var(--border); }
+  .arch-layer-h { background: var(--navy); color: #fff; }
+  .arch-layer-h .arch-files { color: rgba(255,255,255,.5); }
+  .arch-layer-s { background: var(--blue-dim); border-color: #B8C8F5; }
+  .arch-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    width: 18px;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .arch-layer-h .arch-num { color: rgba(255,255,255,.45); }
+  .arch-name { font-size: 13px; font-weight: 700; flex: 1; }
+  .arch-files {
+    font-family: 'Consolas', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .arch-arrow {
+    text-align: center;
+    color: var(--border);
+    font-size: 14px;
+    margin: 0;
+    line-height: 1;
+  }
+
+  /* ── divider ──────────────────────────────── */
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  /* ── tag group ──────────────────────────────── */
+  .tag-group { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .tag {
+    font-size: 11px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 2px 8px;
+    color: var(--navy-mid);
+    font-family: 'Consolas', monospace;
+  }
+
+  /* ── checklist ──────────────────────────────── */
+  .checklist { list-style: none; padding: 0; }
+  .checklist li {
+    display: flex;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13.5px;
+  }
+  .checklist li:last-child { border-bottom: none; }
+  .chk {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border);
+    border-radius: 2px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* ── sub-table (compact) ──────────────────────────────── */
+  .ctable { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0; }
+  .ctable td, .ctable th { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  .ctable th { background: var(--bg); font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .ctable tr:last-child td { border-bottom: none; }
+
+</style>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-title">Expense Tracker · Revisão</div>
+  <nav class="topbar-nav">
+    <a href="#arch">Arquitetura</a>
+    <a href="#flow">Fluxo</a>
+    <a href="#service">Service Layer</a>
+    <a href="#tests">Testes Unitários</a>
+    <a href="#checklist">Checklist</a>
+  </nav>
+  <div class="topbar-timer" id="timer">40:00 restantes</div>
+</div>
+
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-eyebrow">Guia de revisão · 40 minutos</div>
+    <h1>Expense Tracker — Backend &amp; Testes</h1>
+    <div class="hero-meta">
+      <div class="hero-stat"><strong>FastAPI</strong> + SQLAlchemy</div>
+      <div class="hero-stat"><strong>8</strong> funções de serviço</div>
+      <div class="hero-stat"><strong>7</strong> arquivos de teste unitário</div>
+      <div class="hero-stat"><strong>4</strong> endpoints de analytics</div>
+      <div class="hero-stat"><strong>38</strong> testes passando</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SEÇÃO 1 — ARQUITETURA
+  ══════════════════════════════════════════════ -->
+  <div class="section" id="arch">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <div class="section-title">Arquitetura em 6 Camadas</div>
+      <div class="read-time">~4 min</div>
+    </div>
+    <div class="section-body">
+
+      <div class="arch-layers">
+        <div class="arch-layer arch-layer-n">
+          <div class="arch-num">6</div>
+          <div class="arch-name">Database (SQLite)</div>
+          <div class="arch-files">financial.db · database/database.py</div>
+        </div>
+        <div class="arch-arrow">↑</div>
+        <div class="arch-layer arch-layer-n">
+          <div class="arch-num">5</div>
+          <div class="arch-name">Models (ORM)</div>
+          <div class="arch-files">models/user.py · expense.py · bill.py · income.py · investment.py · category_budget.py</div>
+        </div>
+        <div class="arch-arrow">↑</div>
+        <div class="arch-layer arch-layer-s" style="border-color:#2F54EB; background:#E0E9FF;">
+          <div class="arch-num" style="color:var(--blue)">4</div>
+          <div class="arch-name" style="color:var(--navy)">Services (Pure / IO-Free)</div>
+          <div class="arch-files" style="color:var(--blue)">services/financial_service.py</div>
+        </div>
+        <div class="arch-arrow">↑</div>
+        <div class="arch-layer arch-layer-n">
+          <div class="arch-num">3</div>
+          <div class="arch-name">Dependencies (DI / 404)</div>
+          <div class="arch-files">dependencies.py</div>
+        </div>
+        <div class="arch-arrow">↑</div>
+        <div class="arch-layer arch-layer-n">
+          <div class="arch-num">2</div>
+          <div class="arch-name">Schemas (Pydantic v2)</div>
+          <div class="arch-files">schemas/*.py</div>
+        </div>
+        <div class="arch-arrow">↑</div>
+        <div class="arch-layer arch-layer-h">
+          <div class="arch-num">1</div>
+          <div class="arch-name">Routers (HTTP)</div>
+          <div class="arch-files">routers/users · expenses · bills · incomes · investments · category_budgets · analytics</div>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <strong>Princípio central:</strong> A camada de serviço (<code>financial_service.py</code>) é <strong>100% IO-Free</strong> — não lê banco, não lê relógio, não acessa estado global. Todas as funções são puras e recebem dataclasses como parâmetros. Isso é o que torna os testes unitários possíveis sem qualquer mock.
+      </div>
+
+      <h3>Dataclasses de entrada do serviço</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Dataclass</th><th>Campos</th><th>Default</th></tr></thead>
+          <tbody>
+            <tr><td><code>IncomeData</code></td><td><code>income_value: float</code></td><td>—</td></tr>
+            <tr><td><code>ExpenseData</code></td><td><code>expense_value, installment, start_month, start_year, category</code></td><td><code>category="geral"</code></td></tr>
+            <tr><td><code>BillData</code></td><td><code>bill_value: float</code></td><td>—</td></tr>
+            <tr><td><code>InvestmentData</code></td><td><code>value_invested, dividends</code></td><td><code>dividends=0.0</code></td></tr>
+            <tr><td><code>CategoryBudgetData</code></td><td><code>category: str, ceiling: float</code></td><td>—</td></tr>
+            <tr><td><code>InstallmentEntry</code></td><td><code>installment_number, month, year, amount</code></td><td>—</td></tr>
+            <tr><td><code>MonthlyInvoice</code></td><td><code>month, year, total</code></td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Tratamento de erros global</h3>
+      <p>Em <code>main.py</code>, qualquer <code>ValueError</code> disparado em qualquer lugar retorna <strong>HTTP 422</strong>:</p>
+      <pre><code><span class="kw">@app</span>.exception_handler(ValueError)
+<span class="kw">async def</span> <span class="fn">value_error_handler</span>(request, exc):
+    <span class="kw">return</span> JSONResponse(status_code=<span class="num">422</span>, content={<span class="str">"detail"</span>: str(exc)})</code></pre>
+      <p>Outros códigos de erro usados: <code>404</code> (usuário não encontrado), <code>409</code> (conflito/unique constraint), <code>422</code> (validação Pydantic ou ValueError).</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SEÇÃO 2 — FLUXO DE UMA REQUISIÇÃO
+  ══════════════════════════════════════════════ -->
+  <div class="section" id="flow">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <div class="section-title">Fluxo de uma Requisição</div>
+      <div class="read-time">~5 min</div>
+    </div>
+    <div class="section-body">
+
+      <p style="margin-bottom:16px">Exemplo: <code>GET /users/3/summary</code> → <code>analytics.py</code></p>
+
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-left"><div class="flow-dot">1</div><div class="flow-line"></div></div>
+          <div class="flow-content">
+            <div class="flow-layer">HTTP Request chega ao Router</div>
+            <div class="flow-detail"><span class="flow-file">routers/analytics.py</span> FastAPI roteia para <code>get_user_summary(user_id=3)</code>. O parâmetro <code>user_id</code> vem da URL.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-left"><div class="flow-dot">2</div><div class="flow-line"></div></div>
+          <div class="flow-content">
+            <div class="flow-layer">Dependency Injection — Sessão + 404</div>
+            <div class="flow-detail"><span class="flow-file">dependencies.py</span> <code>get_user_or_404(3, db, with_relations=True)</code> faz uma única query com <code>joinedload</code> em bills/expenses/incomes/investments (evita N+1). Se não achar → <strong>HTTP 404</strong>.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-left"><div class="flow-dot">3</div><div class="flow-line"></div></div>
+          <div class="flow-content">
+            <div class="flow-layer">Conversão ORM → Dataclasses puras</div>
+            <div class="flow-detail"><span class="flow-file">routers/analytics.py</span> Cada ORM object é convertido: <code>IncomeData(i.income_value)</code>, <code>_to_expense_data(e)</code>, etc. A partir daqui, zero SQL.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-left"><div class="flow-dot" style="background:var(--blue)">4</div><div class="flow-line"></div></div>
+          <div class="flow-content">
+            <div class="flow-layer">Service Layer (puro)</div>
+            <div class="flow-detail"><span class="flow-file">services/financial_service.py</span> <code>summarize_finances(incomes, expenses, bills, investments, budget_ceiling)</code> chama internamente <code>calculate_balance</code>, <code>calculate_net_worth</code> e, se <code>budget_ceiling != None</code>, <code>check_budget_alert</code>. Retorna um <code>dict</code>.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-left"><div class="flow-dot">5</div><div class="flow-line"></div></div>
+          <div class="flow-content">
+            <div class="flow-layer">Schema de resposta (Pydantic)</div>
+            <div class="flow-detail"><span class="flow-file">schemas/summary.py</span> FastAPI serializa o dict retornado via <code>FinancialSummary</code> (response_model). Campos extras são descartados automaticamente.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-left"><div class="flow-dot">6</div></div>
+          <div class="flow-content">
+            <div class="flow-layer">JSON Response → Cliente</div>
+            <div class="flow-detail">FastAPI serializa para JSON e responde <strong>HTTP 200</strong>.</div>
+          </div>
+        </div>
+      </div>
+
+      <h3>Onde o "agora" (relógio) é injetado</h3>
+      <div class="callout callout-info">
+        O serviço <strong>nunca lê o relógio</strong>. O <code>datetime.now()</code> é chamado no router (<code>analytics.py:113</code>) e o resultado é passado como parâmetro para <code>project_monthly_invoices</code>. Isso mantém a função de serviço determinística e testável sem mocks de tempo.
+      </div>
+
+      <h3>Endpoints de Analytics</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Endpoint</th><th>Função de serviço chamada</th><th>with_relations</th></tr></thead>
+          <tbody>
+            <tr><td><code>GET /users/{id}/summary</code></td><td><code>summarize_finances()</code></td><td>✓</td></tr>
+            <tr><td><code>GET /users/{id}/category-alerts</code></td><td><code>calculate_category_totals()</code> + <code>check_all_category_alerts()</code></td><td>✓</td></tr>
+            <tr><td><code>GET /users/{id}/installments</code></td><td><code>project_installments()</code> por despesa</td><td>✓</td></tr>
+            <tr><td><code>GET /users/{id}/monthly-invoices?months_ahead=6</code></td><td><code>project_monthly_invoices()</code></td><td>✓</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SEÇÃO 3 — SERVICE LAYER
+  ══════════════════════════════════════════════ -->
+  <div class="section" id="service">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <div class="section-title">Service Layer — Todas as Funções</div>
+      <div class="read-time">~14 min</div>
+    </div>
+    <div class="section-body">
+
+      <!-- ── calculate_balance ── -->
+      <div class="fn-card">
+        <div class="fn-header">
+          <div class="fn-name">calculate_balance</div>
+          <div class="fn-sig">(incomes, expenses, bills) → float</div>
+        </div>
+        <div class="fn-body">
+          <div class="formula">
+            <span class="var">saldo</span> <span class="eq">=</span> Σ income_value <span class="op2">−</span> Σ (expense_value / max(installment, 1)) <span class="op2">−</span> Σ bill_value
+          </div>
+          <div class="grid-2">
+            <div class="grid-card">
+              <div class="grid-card-title">Regras</div>
+              <ul style="padding-left:16px;font-size:13px;color:var(--navy-mid)">
+                <li>Despesa parcelada contribui <strong>apenas com 1 parcela</strong> por mês</li>
+                <li><code>installment=0</code> é tratado como 1 (evita divisão por zero) via <code>max(installment, 1)</code></li>
+                <li>Resultado negativo = <strong>déficit mensal</strong> — comportamento correto</li>
+                <li>Resultado arredondado em 2 casas</li>
+              </ul>
+            </div>
+            <div class="grid-card">
+              <div class="grid-card-title">Validações (→ ValueError)</div>
+              <ul style="padding-left:16px;font-size:13px;color:var(--navy-mid)">
+                <li><code>income_value &lt; 0</code></li>
+                <li><code>expense_value &lt; 0</code></li>
+                <li><code>bill_value &lt; 0</code></li>
+              </ul>
+            </div>
+          </div>
+          <div class="callout callout-info" style="margin-top:8px">
+            <strong>Atenção:</strong> <code>installment=0</code> usa política <em>tolerante</em> (<code>max(installment,1)</code>). Já <code>project_installments</code> usa política <em>estrita</em> (levanta <code>ValueError</code>). As duas são intencionais — conhecer a diferença é importante.
+          </div>
+        </div>
+      </div>
+
+      <!-- ── check_budget_alert ── -->
+      <div class="fn-card">
+        <div class="fn-header">
+          <div class="fn-name">check_budget_alert</div>
+          <div class="fn-sig">(category_total, budget_ceiling) → BudgetStatus</div>
+        </div>
+        <div class="fn-body">
+          <div class="formula">
+            <span class="var">ratio</span> <span class="eq">=</span> category_total / budget_ceiling
+          </div>
+          <div class="status-row">
+            <div class="status-chip ok">
+              <span class="range">ratio ≤ 0.80</span>
+              <span class="label">OK</span>
+            </div>
+            <div class="status-chip warn">
+              <span class="range">0.80 &lt; ratio &lt; 1.0</span>
+              <span class="label">WARNING</span>
+            </div>
+            <div class="status-chip exc">
+              <span class="range">ratio ≥ 1.0</span>
+              <span class="label">EXCEEDED</span>
+            </div>
+          </div>
+          <div class="callout callout-warn" style="margin-top:10px">
+            <strong>Fronteira crítica:</strong> <code>ratio = 0.8</code> exato é <strong>OK</strong> (condição é <code>ratio &gt; 0.8</code>, não <code>&gt;=</code>). O teste confirma isso.
+          </div>
+          <div class="grid-2" style="margin-top:12px">
+            <div class="grid-card">
+              <div class="grid-card-title">MC/DC (2 condições)</div>
+              <table class="ctable">
+                <tr><th>#</th><th>C1 ≥1.0</th><th>C2 >0.8</th><th>Res</th></tr>
+                <tr><td>1</td><td>F</td><td>F</td><td><span class="badge badge-ok">OK</span></td></tr>
+                <tr><td>2</td><td>F</td><td>T</td><td><span class="badge badge-warn">WARN</span></td></tr>
+                <tr><td>3</td><td>T</td><td>T</td><td><span class="badge badge-exc">EXC</span></td></tr>
+              </table>
+            </div>
+            <div class="grid-card">
+              <div class="grid-card-title">Validações (→ ValueError)</div>
+              <ul style="padding-left:16px;font-size:13px;color:var(--navy-mid)">
+                <li><code>budget_ceiling &lt;= 0</code></li>
+                <li><code>category_total &lt; 0</code></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── project_installments ── -->
+      <div class="fn-card">
+        <div class="fn-header">
+          <div class="fn-name">project_installments</div>
+          <div class="fn-sig">(expense_value, installments, start_month, start_year) → list[InstallmentEntry]</div>
+        </div>
+        <div class="fn-body">
+          <div class="formula">
+            <span class="var">monthly</span> <span class="eq">=</span> round(expense_value / installments, 2)<br>
+            <span class="var">last_amount</span> <span class="eq">=</span> round(expense_value − monthly × (installments − 1), 2) <span class="cm">← absorve arredondamento</span>
+          </div>
+          <div class="grid-2">
+            <div class="grid-card">
+              <div class="grid-card-title">Comportamento chave</div>
+              <ul style="padding-left:16px;font-size:13px;color:var(--navy-mid)">
+                <li><strong>Virada de ano:</strong> <code>month &gt; 12 → month=1, year+=1</code></li>
+                <li><strong>Última parcela</strong> absorve o erro de arredondamento (<code>10/3 → 3.33, 3.33, 3.34</code>)</li>
+                <li>Política <strong>estrita</strong>: <code>installments &lt;= 0</code> levanta ValueError</li>
+              </ul>
+            </div>
+            <div class="grid-card">
+              <div class="grid-card-title">Validações (→ ValueError)</div>
+              <ul style="padding-left:16px;font-size:13px;color:var(--navy-mid)">
+                <li><code>expense_value &lt; 0</code></li>
+                <li><code>installments &lt;= 0</code></li>
+                <li><code>start_month</code> fora de [1, 12]</li>
+                <li><code>start_year &lt; 1</code></li>
+              </ul>
+            </div>
+          </div>
+          <pre><code><span class="cm"># exemplo: 10.0 em 3x a partir de jan/2025</span>
+project_installments(<span class="num">10.0</span>, <span class="num">3</span>, <span class="num">1</span>, <span class="num">2025</span>)
+<span class="cm"># → [InstallmentEntry(1, 1, 2025, 3.33),</span>
+<span class="cm">#    InstallmentEntry(2, 2, 2025, 3.33),</span>
+<span class="cm">#    InstallmentEntry(3, 3, 2025, 3.34)]  ← último absorve diferença</span></code></pre>
+        </div>
+      </div>
+
+      <!-- ── project_monthly_invoices ── -->
+      <div class="fn-card">
+        <div class="fn-header">
+          <div class="fn-name">project_monthly_invoices</div>
+          <div class="fn-sig">(expenses, reference_month, reference_year, months_ahead) → list[MonthlyInvoice]</div>
+        </div>
+        <div class="fn-body">
+          <p>Consolida parcelas de <strong>todas</strong> as despesas em faturas mensais, respondendo "quanto vou dever em cada mês futuro".</p>
+          <div class="grid-2">
+            <div class="grid-card">
+              <div class="grid-card-title">Algoritmo interno</div>
+              <ol style="padding-left:16px;font-size:13px;color:var(--navy-mid);line-height:1.8">
+                <li>Calcula índice absoluto: <code>_to_month_index(month, year) = year*12 + (month−1)</code></li>
+                <li>Cria janela de meses: <code>range(start_index, start_index + months_ahead)</code></li>
+                <li>Para cada despesa, chama <code>project_installments</code></li>
+                <li>Soma parcelas que caem dentro da janela</li>
+                <li>Converte índices de volta via <code>_from_month_index</code></li>
+              </ol>
+            </div>
+            <div class="grid-card">
+              <div class="grid-card-title">Garantias</div>
+              <ul style="padding-left:16px;font-size:13px;color:var(--navy-mid)">
+                <li>Todo mês da janela aparece no resultado, mesmo com <code>total=0.0</code></li>
+                <li>Parcelas passadas (antes da referência) são ignoradas</li>
+                <li>Parcelas além da janela são ignoradas</li>
+                <li>Suporta virada de ano via índice absoluto</li>
+                <li>Herda validação estrita de <code>project_installments</code></li>
+              </ul>
+            </div>
+          </div>
+          <pre><code><span class="cm"># 300 em 3x a partir de nov/2025, janela de 3 meses</span>
+project_monthly_invoices([ExpenseData(<span class="num">300</span>, <span class="num">3</span>, <span class="num">11</span>, <span class="num">2025</span>)], <span class="num">11</span>, <span class="num">2025</span>, <span class="num">3</span>)
+<span class="cm"># → [MonthlyInvoice(11, 2025, 100.0),</span>
+<span class="cm">#    MonthlyInvoice(12, 2025, 100.0),</span>
+<span class="cm">#    MonthlyInvoice(1,  2026, 100.0)]  ← virada de ano</span></code></pre>
+          <div class="grid-2" style="margin-top:0">
+            <div class="grid-card">
+              <div class="grid-card-title">Validações (→ ValueError)</div>
+              <ul style="padding-left:16px;font-size:13px;color:var(--navy-mid)">
+                <li><code>reference_month</code> fora de [1, 12]</li>
+                <li><code>reference_year &lt; 1</code></li>
+                <li><code>months_ahead &lt; 1</code></li>
+                <li>Herda: <code>installments &lt;= 0</code></li>
+              </ul>
+            </div>
+            <div class="grid-card">
+              <div class="grid-card-title">MC/DC reference_month</div>
+              <table class="ctable">
+                <tr><th>#</th><th>C1 &lt;1</th><th>C2 &gt;12</th><th>Res</th></tr>
+                <tr><td>1</td><td>F</td><td>F</td><td>válido</td></tr>
+                <tr><td>2</td><td>F</td><td>T</td><td>raises</td></tr>
+                <tr><td>3</td><td>T</td><td>F</td><td>raises</td></tr>
+                <tr><td colspan="4" style="color:var(--muted);font-size:11px">Caso 4 (T,T) = inexecutável</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── calculate_net_worth ── -->
+      <div class="fn-card">
+        <div class="fn-header">
+          <div class="fn-name">calculate_net_worth</div>
+          <div class="fn-sig">(investments, balance) → float</div>
+        </div>
+        <div class="fn-body">
+          <div class="formula">
+            <span class="var">patrimônio</span> <span class="eq">=</span> balance <span class="op2">+</span> Σ (value_invested + dividends)
+          </div>
+          <p style="font-size:13px;color:var(--muted)"><code>balance</code> aqui é o <strong>saldo mensal</strong> retornado por <code>calculate_balance</code>. Saldo negativo reduz o patrimônio — comportamento correto. Lista vazia de investimentos retorna apenas o saldo.</p>
+        </div>
+      </div>
+
+      <!-- ── summarize_finances ── -->
+      <div class="fn-card">
+        <div class="fn-header">
+          <div class="fn-name">summarize_finances</div>
+          <div class="fn-sig">(incomes, expenses, bills, investments, budget_ceiling=None) → dict</div>
+        </div>
+        <div class="fn-body">
+          <p>Função de composição — chama <code>calculate_balance</code> e <code>calculate_net_worth</code> internamente.</p>
+          <pre><code>{
+  <span class="str">"balance"</span>:        <span class="cm">float  # saldo mensal</span>
+  <span class="str">"net_worth"</span>:      <span class="cm">float  # patrimônio líquido</span>
+  <span class="str">"total_income"</span>:   <span class="cm">float  # soma das receitas</span>
+  <span class="str">"total_spending"</span>: <span class="cm">float  # despesas parcela + contas fixas</span>
+  <span class="str">"budget_status"</span>:  <span class="cm">"OK"|"WARNING"|"EXCEEDED"  ← só se budget_ceiling != None</span>
+}</code></pre>
+        </div>
+      </div>
+
+      <!-- ── calculate_category_totals ── -->
+      <div class="fn-card">
+        <div class="fn-header">
+          <div class="fn-name">calculate_category_totals</div>
+          <div class="fn-sig">(expenses) → dict[str, float]</div>
+        </div>
+        <div class="fn-body">
+          <p>Agrupa o <strong>custo mensal</strong> (fração da parcela) por categoria. Cada despesa contribui com <code>expense_value / max(installment, 1)</code>.</p>
+          <pre><code>expenses = [
+    ExpenseData(<span class="num">600</span>, <span class="num">2</span>, <span class="num">1</span>, <span class="num">2025</span>, <span class="str">"alimentação"</span>),  <span class="cm"># 300/mês</span>
+    ExpenseData(<span class="num">300</span>, <span class="num">1</span>, <span class="num">1</span>, <span class="num">2025</span>, <span class="str">"alimentação"</span>),  <span class="cm"># 300/mês</span>
+    ExpenseData(<span class="num">400</span>, <span class="num">1</span>, <span class="num">1</span>, <span class="num">2025</span>, <span class="str">"transporte"</span>),   <span class="cm"># 400/mês</span>
+]
+calculate_category_totals(expenses)
+<span class="cm"># → {"alimentação": 600.0, "transporte": 400.0}</span></code></pre>
+          <p style="font-size:13px;color:var(--muted)">Categorias sem teto definido não aparecem em <code>check_all_category_alerts</code>.</p>
+        </div>
+      </div>
+
+      <!-- ── check_all_category_alerts ── -->
+      <div class="fn-card">
+        <div class="fn-header">
+          <div class="fn-name">check_all_category_alerts</div>
+          <div class="fn-sig">(category_totals, category_budgets) → dict[str, BudgetStatus]</div>
+        </div>
+        <div class="fn-body">
+          <p>Aplica <code>check_budget_alert</code> para cada <code>CategoryBudgetData</code>.</p>
+          <div class="grid-2">
+            <div class="grid-card">
+              <div class="grid-card-title">Regras de cobertura</div>
+              <ul style="padding-left:16px;font-size:13px;color:var(--navy-mid)">
+                <li>Categoria com teto mas <strong>sem despesas</strong> → <code>total=0.0</code> → <strong>OK</strong></li>
+                <li>Categoria com despesas mas <strong>sem teto</strong> → ignorada</li>
+              </ul>
+            </div>
+            <div class="grid-card">
+              <div class="grid-card-title">Validação (→ ValueError)</div>
+              <ul style="padding-left:16px;font-size:13px;color:var(--navy-mid)">
+                <li>Qualquer <code>ceiling &lt;= 0</code> levanta ValueError</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── helpers internos ── -->
+      <h3>Helpers Internos (não testados diretamente)</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Função</th><th>O que faz</th></tr></thead>
+          <tbody>
+            <tr><td><code>_monthly_amount(expense)</code></td><td>Retorna <code>expense_value / max(installment, 1)</code> — política tolerante</td></tr>
+            <tr><td><code>_monthly_expense_total(expenses)</code></td><td>Soma <code>_monthly_amount</code> de todas as despesas</td></tr>
+            <tr><td><code>_to_month_index(month, year)</code></td><td><code>year*12 + (month-1)</code> — lineariza mês/ano</td></tr>
+            <tr><td><code>_from_month_index(index)</code></td><td>Inverso: <code>(index%12+1, index//12)</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SEÇÃO 4 — TESTES UNITÁRIOS
+  ══════════════════════════════════════════════ -->
+  <div class="section" id="tests">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <div class="section-title">Testes Unitários — Cobertura por Função</div>
+      <div class="read-time">~12 min</div>
+    </div>
+    <div class="section-body">
+
+      <div class="callout callout-info" style="margin-bottom:20px">
+        <strong>Todos os testes unitários são zero-mock:</strong> como as funções são puras (IO-Free), os testes constroem dataclasses diretamente e chamam a função. Nenhum banco, nenhum fixture de sessão.
+      </div>
+
+      <!-- calculate_balance -->
+      <h3>test_calculate_balance.py</h3>
+      <ul class="test-list">
+        <li><span class="test-icon">●</span><span class="test-name">test_basic_balance</span><span class="test-desc">5000 − (1200/3) − 300 = 4300.0</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_multiple_incomes</span><span class="test-desc">Soma de 2 receitas sem gastos</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_multiple_expenses_different_installments</span><span class="test-desc">600/2 + 900/3 = 600 → saldo -600</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_multiple_bills</span><span class="test-desc">200 + 150 = -350 sem receita</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_single_installment_full_value_this_month</span><span class="test-desc">Compra à vista = valor total como parcela</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_negative_balance_deficit</span><span class="test-desc">1000 − 1500 = −500 (déficit)</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_all_empty_returns_zero</span><span class="test-desc">Edge: listas vazias → 0.0</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_zero_income_value</span><span class="test-desc">Edge: receita zero não soma</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_exact_zero_balance</span><span class="test-desc">Edge: receitas = gastos → 0.0 exato</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_installment_zero_treated_as_one</span><span class="test-desc">Edge: installment=0 → max(0,1)=1, não divide por zero</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_negative_income_raises</span><span class="test-desc">ValueError: income negativo</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_negative_expense_raises</span><span class="test-desc">ValueError: expense negativa</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_negative_bill_raises</span><span class="test-desc">ValueError: bill negativa</span></li>
+      </ul>
+
+      <!-- check_budget_alert -->
+      <h3 style="margin-top:24px">test_budget_alert.py</h3>
+      <ul class="test-list">
+        <li><span class="test-icon">●</span><span class="test-name">test_above_ceiling_exceeded</span><span class="test-desc">MC/DC Caso 3: 1500/1000 = 1.5 → EXCEEDED</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_99_percent_warning</span><span class="test-desc">MC/DC Caso 2: 990/1000 = 0.99 → WARNING</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_below_80_percent_ok</span><span class="test-desc">MC/DC Caso 1: 500/1000 = 0.5 → OK</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_boundary_just_below_80_ok</span><span class="test-desc">BVA: 799/1000 = 0.799 → OK</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_boundary_exactly_80_percent_is_ok</span><span class="test-desc">BVA: 800/1000 = 0.8 exato → OK</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_boundary_just_above_80_percent_is_warning</span><span class="test-desc">BVA: 801/1000 = 0.801 → WARNING</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_boundary_just_below_ceiling_warning</span><span class="test-desc">BVA: 999/1000 = 0.999 → WARNING</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_exactly_at_ceiling_exceeded</span><span class="test-desc">BVA: 1000/1000 = 1.0 exato → EXCEEDED</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_just_above_ceiling_exceeded</span><span class="test-desc">BVA: 1001/1000 → EXCEEDED</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_zero_spending_ok</span><span class="test-desc">Gasto zero → OK</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_zero_ceiling_raises</span><span class="test-desc">ValueError: ceiling=0</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_negative_ceiling_raises</span><span class="test-desc">ValueError: ceiling negativo</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_negative_total_raises</span><span class="test-desc">ValueError: total negativo</span></li>
+      </ul>
+
+      <!-- project_installments -->
+      <h3 style="margin-top:24px">test_project_installments.py</h3>
+      <ul class="test-list">
+        <li><span class="test-icon">●</span><span class="test-name">test_single_installment</span><span class="test-desc">Compra à vista → 1 entry</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_three_installments_same_year</span><span class="test-desc">3x no mesmo ano sem virada</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_installment_numbers_are_sequential</span><span class="test-desc">Números 1,2,3,4 sequenciais</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_year_rollover_from_november</span><span class="test-desc">3x a partir de nov/2025 → jan/2026</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_year_rollover_from_december</span><span class="test-desc">2x a partir de dez → jan/ano+1</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_full_year_installments_from_january</span><span class="test-desc">12x de jan a dez, tudo no mesmo ano</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_13_installments_crosses_two_years</span><span class="test-desc">13ª parcela cai em jan/2026</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_rounding_correction_on_last_installment</span><span class="test-desc">10/3 → [3.33, 3.33, 3.34]</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_zero_expense_all_amounts_zero</span><span class="test-desc">Valor zero → parcelas [0.0, 0.0, 0.0]</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_start_month_1_valid</span><span class="test-desc">BVA: mínimo válido = mês 1</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_start_month_12_valid</span><span class="test-desc">BVA: máximo válido = mês 12</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_installments_zero_raises</span><span class="test-desc">ValueError: 0 parcelas</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_installments_negative_raises</span><span class="test-desc">ValueError: parcelas negativas</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_month_zero_raises</span><span class="test-desc">ValueError: mês 0</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_month_13_raises</span><span class="test-desc">ValueError: mês 13</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_negative_expense_raises</span><span class="test-desc">ValueError: valor negativo</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_year_zero_raises</span><span class="test-desc">ValueError: ano 0</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_year_negative_raises</span><span class="test-desc">ValueError: ano negativo</span></li>
+      </ul>
+
+      <!-- project_monthly_invoices -->
+      <h3 style="margin-top:24px">test_monthly_invoices.py</h3>
+      <ul class="test-list">
+        <li><span class="test-icon">●</span><span class="test-name">test_single_expense_single_installment_in_first_month</span><span class="test-desc">Compra à vista no mês de referência</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_installments_spread_across_months</span><span class="test-desc">300/3x → 100 em cada um dos 3 meses</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_multiple_expenses_sum_in_same_month</span><span class="test-desc">2 despesas somam no mesmo mês</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_every_window_month_present_even_without_installments</span><span class="test-desc">Sem despesas → meses aparecem com total=0.0</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_installments_beyond_window_are_ignored</span><span class="test-desc">12x mas janela de 2 → só 2 contam</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_past_installments_before_reference_are_ignored</span><span class="test-desc">Parcelas passadas (jan/fev) fora da janela de mar</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_window_crosses_year_boundary</span><span class="test-desc">Janela nov/2025 → jan/2026</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_rounding_correction_aggregated</span><span class="test-desc">Soma dos totais = valor original exato (10.0)</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_months_ahead_one_returns_only_reference_month</span><span class="test-desc">BVA: months_ahead=1 → só 1 mês</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_correct_month</span><span class="test-desc">MC/DC Caso 1: month=6 válido</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_reference_month_zero_raises</span><span class="test-desc">MC/DC Caso 3: month=-5 → raises</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_reference_month_above_12_raises</span><span class="test-desc">MC/DC Caso 2: month=17 → raises</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_reference_month_13_raises</span><span class="test-desc">BVA OFF point: month=13 → raises</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_reference_month_one_is_valid / twelve / two / eleven</span><span class="test-desc">BVA: ON points do intervalo [1, 12]</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_reference_month_0_raises / 13_raises</span><span class="test-desc">BVA: OFF points abaixo e acima</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_months_ahead_zero_raises / negative_raises / valid</span><span class="test-desc">BVA: OFF points e ON point de months_ahead</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_reference_year_zero_raises / negative_raises / one_is_valid</span><span class="test-desc">BVA: OFF e ON points de reference_year</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_invalid_installment_propagates_from_project_installments</span><span class="test-desc">Herança de política estrita: installments=0 → raises</span></li>
+      </ul>
+
+      <!-- net_worth -->
+      <h3 style="margin-top:24px">test_net_worth.py</h3>
+      <ul class="test-list">
+        <li><span class="test-icon">●</span><span class="test-name">test_no_investments_returns_balance</span><span class="test-desc">Lista vazia → retorna só o saldo</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_investment_no_dividends</span><span class="test-desc">Capital sem dividendos</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_investment_with_dividends</span><span class="test-desc">Capital + dividendo = 10500</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_multiple_investments</span><span class="test-desc">Soma de múltiplos investimentos + saldo</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_negative_balance_reduces_worth</span><span class="test-desc">Déficit reduz patrimônio</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_negative_balance_larger_than_investments</span><span class="test-desc">Déficit maior que investimentos → patrimônio negativo</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_all_zeros</span><span class="test-desc">Zero + zero = 0.0</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_large_values_precision</span><span class="test-desc">1M + 50k + 50k = 1.1M (precisão float)</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_zero_dividends_not_counted</span><span class="test-desc">dividends=0 não soma</span></li>
+      </ul>
+
+      <!-- category_alerts -->
+      <h3 style="margin-top:24px">test_category_alerts.py</h3>
+      <ul class="test-list">
+        <li><span class="test-icon">●</span><span class="test-name">test_empty_expenses_returns_empty</span><span class="test-desc">calculate_category_totals([]) → {}</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_single_expense_single_category</span><span class="test-desc">Uma despesa → categoria com valor</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_installment_expense_contributes_monthly_fraction</span><span class="test-desc">1200/4 = 300 por categoria</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_multiple_expenses_same_category_are_summed</span><span class="test-desc">300+300 na mesma categoria = 600</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_multiple_expenses_different_categories</span><span class="test-desc">2 categorias distintas</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_default_category_geral</span><span class="test-desc">category omitida usa "geral"</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_installment_zero_treated_as_one</span><span class="test-desc">Política tolerante em category_totals</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_three_categories</span><span class="test-desc">3 categorias, frações corretas</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_empty_budgets_returns_empty</span><span class="test-desc">Sem tetos → resultado vazio</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_category_with_no_expenses_treated_as_zero</span><span class="test-desc">Teto definido mas sem despesas → OK</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_category_ok / warning / exceeded</span><span class="test-desc">Os 3 estados individualmente</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_multiple_categories_different_statuses</span><span class="test-desc">alimentação=OK, transporte=WARNING, lazer=EXCEEDED</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_category_in_totals_without_budget_is_ignored</span><span class="test-desc">Categoria sem teto não aparece no resultado</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_boundary_exactly_at_ceiling_exceeded</span><span class="test-desc">500/500 = 1.0 → EXCEEDED (fronteira)</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_boundary_exactly_80_percent_ok</span><span class="test-desc">400/500 = 0.8 → OK (fronteira)</span></li>
+        <li><span class="test-icon">●</span><span class="test-name">test_zero_ceiling_raises / negative_ceiling_raises</span><span class="test-desc">ValueError para ceiling &lt;= 0</span></li>
+      </ul>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SEÇÃO 5 — CHECKLIST
+  ══════════════════════════════════════════════ -->
+  <div class="section" id="checklist">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <div class="section-title">Checklist de Revisão Rápida</div>
+      <div class="read-time">~3 min</div>
+    </div>
+    <div class="section-body">
+      <ul class="checklist">
+        <li><div class="chk"></div><div>A camada de serviço é IO-Free: nenhuma função acessa banco, arquivo ou relógio</div></li>
+        <li><div class="chk"></div><div><code>calculate_balance</code>: usa fração mensal da despesa (<code>value/max(installment,1)</code>), política tolerante</div></li>
+        <li><div class="chk"></div><div><code>project_installments</code>: política estrita (<code>installments &lt;= 0</code> → ValueError), última parcela corrige arredondamento</div></li>
+        <li><div class="chk"></div><div><code>check_budget_alert</code>: fronteira em 0.8 é <strong>exclusiva</strong> (<code>ratio &gt; 0.8</code>), ou seja, 80% exato ainda é OK</div></li>
+        <li><div class="chk"></div><div><code>project_monthly_invoices</code>: todos os meses da janela aparecem mesmo com total=0.0; parcelas fora da janela são ignoradas</div></li>
+        <li><div class="chk"></div><div><code>summarize_finances</code>: <code>budget_status</code> só aparece no dict se <code>budget_ceiling != None</code></div></li>
+        <li><div class="chk"></div><div><code>check_all_category_alerts</code>: categoria com teto mas sem despesas = OK; categoria sem teto = ignorada</div></li>
+        <li><div class="chk"></div><div>O <code>datetime.now()</code> é chamado no <em>router</em>, não no serviço — mantém pureza e testabilidade</div></li>
+        <li><div class="chk"></div><div><code>get_user_or_404</code> com <code>with_relations=True</code> usa joinedload para evitar N+1 queries</div></li>
+        <li><div class="chk"></div><div>ValueError em qualquer lugar → HTTP 422 (handler global em <code>main.py</code>)</div></li>
+        <li><div class="chk"></div><div>Técnicas de teste usadas: <strong>MC/DC</strong>, <strong>BVA (Boundary Value Analysis)</strong>, caminho feliz, edge cases, validações de entrada</div></li>
+        <li><div class="chk"></div><div>Testes unitários: 0 mocks, só dataclasses + assert. Nenhuma dependência de banco ou sessão</div></li>
+      </ul>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+  // Timer regressivo de 40 minutos
+  const totalSecs = 40 * 60;
+  let elapsed = 0;
+  const el = document.getElementById('timer');
+  const iv = setInterval(() => {
+    elapsed++;
+    const rem = Math.max(0, totalSecs - elapsed);
+    const m = Math.floor(rem / 60).toString().padStart(2, '0');
+    const s = (rem % 60).toString().padStart(2, '0');
+    el.textContent = m + ':' + s + ' restantes';
+    if (rem === 0) { el.textContent = 'Tempo esgotado'; clearInterval(iv); }
+  }, 1000);
+</script>
